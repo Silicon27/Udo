@@ -1,0 +1,4 @@
+<function> ::= "fn" <identifier> "(" <parameters> ")" "->" <type> <block>
+<identifier> ::= <letter> { <letter> | <digit> | "_" }
+<block> ::= "{" { <statement> } "}"
+
