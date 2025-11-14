@@ -5,6 +5,44 @@
 #include "ast.hpp"
 
 namespace ast {
+    // Visitor::visit implementations
+
+    void Visitor::visit(const std::shared_ptr<ProgramNode> node) { (void)node; }
+    void Visitor::visit(const std::shared_ptr<EvaluationNode> node) { (void)node; }
+    void Visitor::visit(const std::shared_ptr<TypeNode> node) { (void)node; }
+    void Visitor::visit(const std::shared_ptr<LiteralNode> node) { (void)node; }
+    void Visitor::visit(const std::shared_ptr<IdentifierNode> node) { (void)node; }
+
+    // WhichNode::visit
+    void WhichNode::visit(const std::shared_ptr<ProgramNode> node) {
+        (void)node;
+        this->node_name = "ProgramNode";
+    }
+    void WhichNode::visit(const std::shared_ptr<EvaluationNode> node) {
+        (void)node;
+        this->node_name = "EvaluationNode";
+    }
+
+    void WhichNode::visit(const std::shared_ptr<TypeNode> node) {
+        (void)node;
+        this->node_name = "TypeNode";
+    }
+
+    void WhichNode::visit(const std::shared_ptr<LiteralNode> node) {
+        (void)node;
+        this->node_name = "LiteralNode";
+    }
+
+    void WhichNode::visit(const std::shared_ptr<IdentifierNode> node) {
+        (void)node;
+        this->node_name = "IdentifierNode";
+    }
+
+    std::string WhichNode::get_node_name() const { return this->node_name; }
+
+}
+
+namespace ast {
     ASTNode::ASTNode() : parent(nullptr)  {}
 
     void ASTNode::accept(Visitor* visitor) {
@@ -48,5 +86,22 @@ namespace ast {
     std::shared_ptr<ASTNode> ASTNode::get_root() {
         return parent;
     }
+
+}
+
+namespace ast {
+    TypeNode::TypeNode(const std::string& name) : type_name(name) {}
+    const std::string& TypeNode::get_type_name() const { return type_name; }
+
+    EvaluationNode::EvaluationNode(const std::string &expression) : expression(expression) {}
+    const std::string& EvaluationNode::get_expression() const { return expression; }
+
+    LiteralNode::LiteralNode(const std::string &value) : value(value) {}
+    const std::string &LiteralNode::get_value() const { return value; }
+
+    IdentifierNode::IdentifierNode(const std::string &name) : name(name) {}
+    const std::string &IdentifierNode::get_name() const { return name; }
+
+
 
 }
