@@ -4,7 +4,7 @@
 
 #include "parser.hpp"
 
-class Parser {
-public:
+namespace udo::parse {
+    Parser::Parser(const std::vector<Token> &tokens, const int allowed_errors, std::shared_ptr<ProgramNode> program) : program(program), tokens(tokens), allowed_errors(allowed_errors) {}
 
-};
+}

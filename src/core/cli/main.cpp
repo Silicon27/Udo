@@ -6,7 +6,11 @@
 
 #include "compiler_invocation.hpp"
 
+/// cudo - Udo Compiler
+
 int main(int argc, char* argv[]) {
+    using namespace udo;
+
     if (argc < 2) {
         std::cout << "usage: " << argv[0] << " <file> [options]\n";
         return 1;

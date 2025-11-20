@@ -4,7 +4,7 @@
 
 #include "ast.hpp"
 
-namespace ast {
+namespace udo::ast {
     // Visitor::visit implementations
 
     void Visitor::visit(const std::shared_ptr<ProgramNode> node) { (void)node; }
@@ -42,7 +42,7 @@ namespace ast {
 
 }
 
-namespace ast {
+namespace udo::ast {
     ASTNode::ASTNode() : parent(nullptr)  {}
 
     void ASTNode::accept(Visitor* visitor) {
@@ -89,7 +89,7 @@ namespace ast {
 
 }
 
-namespace ast {
+namespace udo::ast {
     TypeNode::TypeNode(const std::string& name) : type_name(name) {}
     const std::string& TypeNode::get_type_name() const { return type_name; }
 

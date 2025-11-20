@@ -8,11 +8,22 @@
 #include "../ast/ast.hpp"
 #include "../lexer/lexer.hpp"
 
-class Parser {
-    std::vector<Token> tokens;
-    int allowed_errors;
-public:
-    Parser(std::vector<Token> tokens, int allowed_errors = 20, std::shared_ptr<ProgramNode> program) : tokens(tokens), allowed_errors(allowed_errors) {}
-};
+namespace udo::parse {
+    class Parse;
+
+    using namespace udo::ast;
+    using namespace udo::lexer;
+
+    class Parser {
+        std::shared_ptr<ProgramNode> program;
+        std::vector<Token> tokens;
+        int allowed_errors;
+    public:
+        explicit Parser(const std::vector<Token> &tokens, int allowed_errors = 20, std::shared_ptr<ProgramNode> program);
+        ~Parser() = default;
+
+
+    };
+}
 
 #endif //PARSER_HPP

@@ -7,7 +7,7 @@
 
 #include <vector>
 
-namespace ast {
+namespace udo::ast {
     // visitors
 
     class Visitor {
@@ -38,7 +38,7 @@ namespace ast {
     };
 }
 
-namespace ast {
+namespace udo::ast {
     class ASTNode : std::enable_shared_from_this<ASTNode> {
         std::shared_ptr<ASTNode> parent;
         std::vector<std::shared_ptr<ASTNode>> children;
