@@ -5,7 +5,7 @@
 #include "compiler_invocation.hpp"
 
 #include <utility>
-#include "argparse.hpp"
+#include <cli/argparse.hpp>
 
 #define CUDO_NAME "cudo"
 #define CUDO_VERSION "0.0.0"
@@ -27,6 +27,29 @@ compiler_config::Compiler_Config parse(const int argc, char *argv[])  {
     program.add_argument("output")
         .help("output file (defaults to binary)");
 
+    program.add_argument("-v", "--verbose")
+        .help("Print verbose output");
+
+    program.add_argument("-O0")
+        .help("(attempt to) Disable all optimizations");
+
+    program.add_argument("-O1")
+        .help("Light optimizations, default");
+
+    program.add_argument("-O2")
+        .help("Heavy optimizations");
+
+    program.add_argument("-O3")
+        .help("Aggro mode!");
+
+    program.add_argument("-Os")
+        .help("Optimize for size");
+
+    program.add_argument("-Oz")
+        .help("Optimize for speed");
+
+    // TODO make distinct arguments for each output format
+
 
     program.add_argument("--fmax-error-count")
         .help("The maximum number of errors recovery attempts before compilation termination")
@@ -45,13 +68,27 @@ compiler_config::Compiler_Config parse(const int argc, char *argv[])  {
     int fmax_error_count = program.get<int>("--fmax-error-count");
 
     compiler_config::Compiler_Config config;
-    config.
 
+    if (output.empty()) {
+        // TODO alter this depending on whether user wants the .o files or the linked binary
+        // TODO MAYBE REMOVE IN FAVOR OF EXPLICIT -o
+        std::string temp = input.substr(0, input.find_last_of('.'));
+        config.output = temp;
+    } else {
+        config.output = output;
+    }
 
+    config.sources.push_back(input);
+    config.flags.max_error_count = fmax_error_count;
+
+    return config;
 }
 
 // constructor for Compiler_Invocation
 Compiler_Invocation::Compiler_Invocation(compiler_config::Compiler_Config config)  : config(std::move(config)) {}
+
+// Preprocessor Invoke
+
 
 
 // Lexer_Invoke

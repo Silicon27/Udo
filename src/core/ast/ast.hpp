@@ -22,7 +22,7 @@ namespace udo::ast {
         virtual void visit(std::shared_ptr<class IdentifierNode> node);
     };
 
-    class WhichNode : public Visitor {
+    class WhichNode final : public Visitor {
     public:
         WhichNode() = default;
 
@@ -52,7 +52,7 @@ namespace udo::ast {
         virtual void remove_child(std::shared_ptr<ASTNode> child);
         virtual void remove_all_children();
 
-        [[nodiscard]] virtual std::shared_ptr<ASTNode> get_child(ASTNode);
+        [[nodiscard]] virtual std::shared_ptr<ASTNode> get_child(const std::shared_ptr<ASTNode>&);
         [[nodiscard]] virtual std::vector<std::shared_ptr<ASTNode>>& get_children();
         [[nodiscard]] virtual std::shared_ptr<ASTNode> get_root();
 
@@ -76,6 +76,14 @@ namespace udo::ast {
     public:
         ProgramNode() = default;
         ~ProgramNode() override = default;
+    };
+
+    /// Represents a block of code wrapped in {}
+    class BlockNode final : public ASTNode {
+        // children member handle things in the block
+    public:
+        BlockNode() = default;
+        ~BlockNode() override = default;
     };
 
     // used to store expressions
@@ -121,6 +129,12 @@ namespace udo::ast {
     public:
         explicit VariableDeclarationNode(const std::string &name, std::shared_ptr<EvaluationNode> expression, std::shared_ptr<TypeNode> type);
         ~VariableDeclarationNode() override = default;
+    };
+
+    class IfStatementNode final : public StatementNode {
+        std::shared_ptr<EvaluationNode> condition;
+
+
     };
 }
 

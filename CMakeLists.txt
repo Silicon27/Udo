@@ -32,11 +32,31 @@ else()
 endif()
 
 # Map components and link
-llvm_map_components_to_libnames(llvm_libs core support)
+llvm_map_components_to_libnames(llvm_libs
+        core
+        support
+        mc
+        mcjit
+        mcparser
+        option
+        bitwriter
+        passes
+)
+set(lld_libs
+    lldCommon
+    lldELF
+    lldCOFF
+    lldMachO
+    lldWasm
+)
 add_executable(udo
         src/core/cli/main.cpp
         src/core/cli/compiler_invocation.cpp
 )
-target_link_libraries(udo PRIVATE ${llvm_libs})
+target_link_libraries(udo PRIVATE ${llvm_libs} ${lld_libs})
 target_include_directories(udo PRIVATE ${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
+include_directories(
+        SYSTEM
+        src/core
+)

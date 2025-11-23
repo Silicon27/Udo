@@ -72,9 +72,9 @@ namespace udo::ast {
     }
 
 
-    std::shared_ptr<ASTNode> ASTNode::get_child(const ASTNode c) {
+    std::shared_ptr<ASTNode> ASTNode::get_child(const std::shared_ptr<ASTNode>& c) {
         const auto it = std::ranges::find_if(children, [&](const std::shared_ptr<ASTNode>& child) {
-            return *child == c;
+            return child == c;
         });
         return (it != children.end()) ? *it : nullptr;
     }

@@ -29,6 +29,32 @@ namespace udo::compiler_config {
         Oz
     };
 
+    enum class Output_Format {
+        /// Native object file (ELF / Mach-O / COFF depending on target)
+        Object,
+
+        /// Assembly (.s)
+        Assembly,
+
+        /// LLVM IR (textual .ll)
+        LLVM_IR,
+
+        /// LLVM Bitcode (.bc)
+        LLVM_Bitcode,
+
+        /// wasm object file (WebAssembly)
+        Wasm_Object,
+
+        /// wasm text format (.wat)
+        Wasm_Text,
+
+        /// Null output (used for benchmarking / analysis)
+        Null,
+
+        // Native executable, requires lld
+        Executable
+    };
+
     struct Flags {
         // frontend flags
         bool verbose = false;
@@ -36,17 +62,27 @@ namespace udo::compiler_config {
 
         // backend flags
         Opt_Level level = Opt_Level::O1;
+        Output_Format output_format;
     };
 
     /// Necessary arguments
     struct Compiler_Config {
-        std::vector<std::string> sources;
+        std::vector<std::string> sources; // sources to compile from
         Flags flags;
         std::optional<std::string> output;
     };
 
     // is meant to take the output of the argc++ library, and is not meant to parse the arguments itself.
     Compiler_Config parse(int argc, char *argv[]);
+
+    struct Preprocessor_Invoke {
+        struct Param {
+            std::string input_file;
+        };
+        Param param;
+        explicit Preprocessor_Invoke(const Param &param);
+        Preprocessor preprocessor;
+    };
 
     /// @brief Individual invocation for the Lexer and it's objects
     ///
@@ -81,6 +117,10 @@ namespace udo::compiler_config {
         explicit Parser_Invoke(const Param &param);
 
         std::unique_ptr<parse::Parser> invoke() const;
+    };
+
+    struct Linker_Invoke {
+
     };
 }
 
