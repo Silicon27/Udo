@@ -1,1 +1,2 @@
-let int x = 42;
+let x: i32 = 42;
+let y: i64 = 1;

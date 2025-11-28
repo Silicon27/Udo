@@ -19,7 +19,7 @@ namespace udo::parse {
         std::vector<Token> tokens;
         int allowed_errors;
     public:
-        explicit Parser(const std::vector<Token> &tokens, int allowed_errors = 20, std::shared_ptr<ProgramNode> program);
+        explicit Parser(const std::vector<Token> &tokens, int allowed_errors = 20, const std::shared_ptr<ProgramNode> &program);
         ~Parser() = default;
 
 

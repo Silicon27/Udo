@@ -1,100 +1,463 @@
-//
-// Created by David Yang on 2025-10-20.
-//
-
 #include "compiler_invocation.hpp"
 
-#include <utility>
+#include <filesystem>
+#include <iostream>
 #include <cli/argparse.hpp>
 
-#define CUDO_NAME "cudo"
+#define CUDO_NAME    "cudo"
 #define CUDO_VERSION "0.0.0"
 
-
 using namespace udo;
-using namespace udo::lexer;
+using namespace udo::compiler_config;
 
-compiler_config::Compiler_Config parse(const int argc, char *argv[])  {
-    compiler_config::Compiler_Config c;
+namespace {
+
+std::string with_extension(const std::string &path,
+                           const std::string &ext) {
+    namespace fs = std::filesystem;
+    fs::path p{path};
+    p.replace_extension(ext);
+    return p.string();
+}
+
+// Derive a default file name for single-input, non-linking modes.
+std::string default_output_for_format(const std::string &input,
+                                      Output_Format format) {
+    switch (format) {
+        case Output_Format::Assembly:     return with_extension(input, ".s");
+        case Output_Format::LLVM_IR:      return with_extension(input, ".ll");
+        case Output_Format::LLVM_Bitcode: return with_extension(input, ".bc");
+        case Output_Format::Wasm_Object:  return with_extension(input, ".wasm");
+        case Output_Format::Wasm_Text:    return with_extension(input, ".wat");
+        case Output_Format::Object:       return with_extension(input, ".o");
+        case Output_Format::Null:         return "";              // no real output
+        case Output_Format::Executable:   return "a.out";
+    }
+    return "a.out";
+}
+
+} // namespace
+
+// =====================
+// Config parser (CLI)
+// =====================
+namespace udo::compiler_config {
+
+Compiler_Config parse(int argc, char *argv[]) {
+    std::vector<std::string> sources;
+
+    bool verbose        = false;
+    int  max_error_count = 20;
+
+    // optimization flags
+    bool opt_O0 = false;
+    bool opt_O1 = false;
+    bool opt_O2 = false;
+    bool opt_O3 = false;
+    bool opt_Os = false;
+    bool opt_Oz = false;
+
+    // output mode flags / filenames
+    std::string o_output;          // -o
+    std::string S_output;          // -S [file]
+    std::string l_output;          // -l [file]
+    std::string L_output;          // -L/-ll [file]
+    std::string W_output;          // -W [file]
+    std::string T_output;          // -T [file]
+    bool        null_output  = false; // --null
+    bool        compile_only = false; // -c
+
     argparse::ArgumentParser program(CUDO_NAME,
-        CUDO_VERSION, argparse::default_arguments::all, false);
+                                     CUDO_VERSION,
+                                     argparse::default_arguments::all,
+                                     /*exit_on_error=*/false);
 
-    program.add_argument("input")
-        .help("The input file to compile")
-        .required();
+    // Positional: multiple input files
+    program.add_argument("inputs")
+        .help("Input source files")
+        .remaining()
+        .store_into(sources);
 
-    // optional, defaults to non-.udo-postfixed version of input file
-    program.add_argument("output")
-        .help("output file (defaults to binary)");
-
+    // Generic options
     program.add_argument("-v", "--verbose")
-        .help("Print verbose output");
-
-    program.add_argument("-O0")
-        .help("(attempt to) Disable all optimizations");
-
-    program.add_argument("-O1")
-        .help("Light optimizations, default");
-
-    program.add_argument("-O2")
-        .help("Heavy optimizations");
-
-    program.add_argument("-O3")
-        .help("Aggro mode!");
-
-    program.add_argument("-Os")
-        .help("Optimize for size");
-
-    program.add_argument("-Oz")
-        .help("Optimize for speed");
-
-    // TODO make distinct arguments for each output format
-
+        .help("Enable verbose output")
+        .flag()
+        .store_into(verbose);
 
     program.add_argument("--fmax-error-count")
-        .help("The maximum number of errors recovery attempts before compilation termination")
-        .nargs(1, 1);
+        .help("Maximum number of error recovery attempts before aborting")
+        .nargs(1, 1)
+        .scan<'d', int>()
+        .store_into(max_error_count);
+
+    // -o
+    program.add_argument("-o", "--output")
+        .help("Specify output file (final artifact or single-file output)")
+        .nargs(1, 1)
+        .store_into(o_output);
+
+    // Output mode selectors (mutually exclusive at high level)
+    program.add_argument("-c", "--compile-only")
+        .help("Compile only; do not link (produce object file(s))")
+        .flag()
+        .store_into(compile_only);
+
+    program.add_argument("-S", "--asm")
+        .help("Compile only; generate assembly")
+        .nargs(0, 1)
+        .store_into(S_output);
+
+    program.add_argument("-l", "--llvm-ir")
+        .help("Compile only; generate LLVM IR")
+        .nargs(0, 1)
+        .store_into(l_output);
+
+    program.add_argument("-L", "--llvm-bitcode", "-ll")
+        .help("Compile only; generate LLVM bitcode")
+        .nargs(0, 1)
+        .store_into(L_output);
+
+    program.add_argument("-W", "--wasm-object")
+        .help("Compile only; generate WebAssembly object")
+        .nargs(0, 1)
+        .store_into(W_output);
+
+    program.add_argument("-T", "--wasm-text")
+        .help("Compile only; generate WebAssembly text")
+        .nargs(0, 1)
+        .store_into(T_output);
+
+    program.add_argument("--null")
+        .help("Compile, run analysis, but do not emit output (Null target)")
+        .flag()
+        .store_into(null_output);
+
+    // Optimization levels
+    program.add_argument("-O0").help("Disable optimizations")
+        .flag().store_into(opt_O0);
+    program.add_argument("-O1").help("Enable light optimizations (default)")
+        .flag().store_into(opt_O1);
+    program.add_argument("-O2").help("Enable more optimizations")
+        .flag().store_into(opt_O2);
+    program.add_argument("-O3").help("Enable aggressive optimizations")
+        .flag().store_into(opt_O3);
+    program.add_argument("-Os").help("Optimize for size")
+        .flag().store_into(opt_Os);
+    program.add_argument("-Oz").help("Optimize for speed")
+        .flag().store_into(opt_Oz);
 
     try {
         program.parse_args(argc, argv);
-    }
-    catch (const std::exception& err) {
-        std::cerr << err.what() << std::endl;
+    } catch (const std::exception &err) {
+        std::cerr << err.what() << '\n';
         std::cerr << program;
+        std::exit(EXIT_FAILURE);
     }
 
-    auto input = program.get<std::string>("input");
-    auto output = program.get<std::string>("output");
-    int fmax_error_count = program.get<int>("--fmax-error-count");
+    if (sources.empty()) {
+        std::cerr << "error: no input files\n";
+        std::cerr << program;
+        std::exit(EXIT_FAILURE);
+    }
 
-    compiler_config::Compiler_Config config;
+    // Decide output format
+    Output_Format format = Output_Format::Executable;
+    int format_count = 0;
 
-    if (output.empty()) {
-        // TODO alter this depending on whether user wants the .o files or the linked binary
-        // TODO MAYBE REMOVE IN FAVOR OF EXPLICIT -o
-        std::string temp = input.substr(0, input.find_last_of('.'));
-        config.output = temp;
+    auto use_format = [&](bool cond, Output_Format f) {
+        if (cond) {
+            ++format_count;
+            format = f;
+        }
+    };
+
+    const bool has_S   = program.present("-S") || program.present("--asm") || !S_output.empty();
+    const bool has_l   = program.present("-l") || program.present("--llvm-ir") || !l_output.empty();
+    const bool has_L   = program.present("-L") || program.present("-ll") ||
+                         program.present("--llvm-bitcode") || !L_output.empty();
+    const bool has_W   = program.present("-W") || program.present("--wasm-object") || !W_output.empty();
+    const bool has_T   = program.present("-T") || program.present("--wasm-text") || !T_output.empty();
+
+    use_format(compile_only, Output_Format::Object);
+    use_format(has_S,        Output_Format::Assembly);
+    use_format(has_l,        Output_Format::LLVM_IR);
+    use_format(has_L,        Output_Format::LLVM_Bitcode);
+    use_format(has_W,        Output_Format::Wasm_Object);
+    use_format(has_T,        Output_Format::Wasm_Text);
+    use_format(null_output,  Output_Format::Null);
+
+    if (format_count > 1) {
+        std::cerr << "error: multiple output modes specified; "
+                     "choose only one of -c, -S, -l, -L/-ll, -W, -T, --null\n";
+        std::exit(EXIT_FAILURE);
+    }
+
+    if (format_count == 0) {
+        format = Output_Format::Executable;
+    }
+
+    // Decide whether we link
+    bool link = (format == Output_Format::Executable);
+
+    // Derived output (optional for final artifact / single-output modes)
+    std::optional<std::string> resolved_output;
+
+    const bool multi_input = sources.size() > 1;
+
+    // Validate -o usage for multi-file + non-linking
+    if (multi_input &&
+        (format == Output_Format::Object ||
+         format == Output_Format::Assembly ||
+         format == Output_Format::LLVM_IR ||
+         format == Output_Format::LLVM_Bitcode ||
+         format == Output_Format::Wasm_Object ||
+         format == Output_Format::Wasm_Text ||
+         format == Output_Format::Null) &&
+        !o_output.empty()) {
+
+        std::cerr << "error: cannot use -o with multiple input files for this output mode; "
+                     "outputs are per-source (e.g. foo.o, bar.o)\n";
+        std::exit(EXIT_FAILURE);
+    }
+
+    if (link) {
+        // Linking mode: one final artifact (like clang default).
+        if (!o_output.empty()) {
+            resolved_output = o_output;
+        } else {
+            resolved_output = "a.out";
+        }
     } else {
-        config.output = output;
+        // Non-linking modes
+        if (!multi_input) {
+            const std::string &single = sources.front();
+
+            switch (format) {
+                case Output_Format::Assembly:
+                    if (!S_output.empty()) {
+                        resolved_output = S_output;
+                    } else if (!o_output.empty()) {
+                        resolved_output = o_output;
+                    } else {
+                        resolved_output = default_output_for_format(single, format);
+                    }
+                    break;
+
+                case Output_Format::LLVM_IR:
+                    if (!l_output.empty()) {
+                        resolved_output = l_output;
+                    } else if (!o_output.empty()) {
+                        resolved_output = o_output;
+                    } else {
+                        resolved_output = default_output_for_format(single, format);
+                    }
+                    break;
+
+                case Output_Format::LLVM_Bitcode:
+                    if (!L_output.empty()) {
+                        resolved_output = L_output;
+                    } else if (!o_output.empty()) {
+                        resolved_output = o_output;
+                    } else {
+                        resolved_output = default_output_for_format(single, format);
+                    }
+                    break;
+
+                case Output_Format::Wasm_Object:
+                    if (!W_output.empty()) {
+                        resolved_output = W_output;
+                    } else if (!o_output.empty()) {
+                        resolved_output = o_output;
+                    } else {
+                        resolved_output = default_output_for_format(single, format);
+                    }
+                    break;
+
+                case Output_Format::Wasm_Text:
+                    if (!T_output.empty()) {
+                        resolved_output = T_output;
+                    } else if (!o_output.empty()) {
+                        resolved_output = o_output;
+                    } else {
+                        resolved_output = default_output_for_format(single, format);
+                    }
+                    break;
+
+                case Output_Format::Object:
+                    if (!o_output.empty()) {
+                        resolved_output = o_output;
+                    } else {
+                        resolved_output = default_output_for_format(single, format);
+                    }
+                    break;
+
+                case Output_Format::Null:
+                    // No file produced
+                    resolved_output = std::nullopt;
+                    break;
+
+                case Output_Format::Executable:
+                    // should not happen in this branch
+                    resolved_output = "a.out";
+                    break;
+            }
+        } else {
+            // Multiple inputs & non-linking: outputs are per-source and derived
+            // later (e.g. foo.udo -> foo.o). No single resolved_output.
+            resolved_output = std::nullopt;
+        }
     }
 
-    config.sources.push_back(input);
-    config.flags.max_error_count = fmax_error_count;
+    // Optimization level
+    Opt_Level opt_level =
+        ([&]() {
+            if (opt_O0) return Opt_Level::O0;
+            if (opt_O3) return Opt_Level::O3;
+            if (opt_O2) return Opt_Level::O2;
+            if (opt_Os) return Opt_Level::Os;
+            if (opt_Oz) return Opt_Level::Oz;
+            if (opt_O1) return Opt_Level::O1;
+            return Opt_Level::O1; // default
+        })();
+
+    // If user didn't provide fmax, keep default 20.
+    if (!program.is_used("--fmax-error-count")) {
+        max_error_count = 20;
+    }
+
+    Flags flags;
+    flags.verbose         = verbose;
+    flags.max_error_count = max_error_count;
+    flags.level           = opt_level;
+    flags.output_format   = format;
+    flags.output_file     = o_output;
+    flags.link            = link;
+
+    Compiler_Config config;
+    config.sources = std::move(sources);
+    config.flags   = flags;
+    config.output  = resolved_output;
+
+    if (flags.verbose) {
+        std::cerr << "cudo: sources=";
+        for (auto &s : config.sources) std::cerr << " " << s;
+        std::cerr << "\n";
+        if (config.output) {
+            std::cerr << "cudo: output=" << *config.output << "\n";
+        }
+        std::cerr << "cudo: link=" << (config.flags.link ? "true" : "false") << "\n";
+    }
 
     return config;
 }
 
-// constructor for Compiler_Invocation
-Compiler_Invocation::Compiler_Invocation(compiler_config::Compiler_Config config)  : config(std::move(config)) {}
+// =====================
+// Stage invocations
+// (parameter holders only;
+// you implement internals elsewhere)
+// =====================
 
-// Preprocessor Invoke
+Preprocessor_Invoke::Preprocessor_Invoke(const Param &p) : param(p) {}
 
+// Implemented as a stub; you can replace this with your own logic.
+Preprocessor Preprocessor_Invoke::invoke() const {
+    // Just construct from the file name for now.
+    // Replace this body with your actual preprocessor pipeline.
+    return Preprocessor(param.input_file);
+}
 
+Lexer_Invoke::Lexer_Invoke(const Param &p) : param(p) {}
 
-// Lexer_Invoke
-compiler_config::Lexer_Invoke::Lexer_Invoke(const Param &param) : param(param) {}
-std::unique_ptr<Lexer> compiler_config::Lexer_Invoke::invoke() const {
+std::unique_ptr<Lexer> Lexer_Invoke::invoke() const {
+    // Minimal construction; you can add extra wiring where you actually use it.
     return std::make_unique<Lexer>(param.input_Stream);
 }
 
+Parser_Invoke::Parser_Invoke(const Param &p) : param(p) {}
 
+std::unique_ptr<parse::Parser> Parser_Invoke::invoke() const {
+    // Minimal construction; real usage left to you.
+    return std::make_unique<parse::Parser>(param.program,
+                                           param.tokens,
+                                           param.allowed_errors);
+}
+
+Sema_Invoke::Sema_Invoke(const Param &p) : param(p) {}
+
+void Sema_Invoke::invoke() const {
+    // No-op stub; you can call your real sema passes elsewhere.
+    (void)param;
+}
+
+Linker_Invoke::Linker_Invoke(const Param &p) : param(p) {}
+
+void Linker_Invoke::invoke() const {
+    if (!param.config.flags.link) {
+        return; // nothing to do
+    }
+
+    // Stub: you can replace this with lld or your own linker integration.
+    if (param.config.flags.verbose) {
+        std::cerr << "cudo: linking " << param.object_files.size()
+                  << " object file(s)";
+        if (param.config.output) {
+            std::cerr << " -> " << *param.config.output;
+        }
+        std::cerr << "\n";
+    }
+}
+
+} // namespace udo::compiler_config
+
+// =====================
+// Compiler_Invocation
+// =====================
+
+Compiler_Invocation::Compiler_Invocation(udo::compiler_config::Compiler_Config cfg)
+    : config(std::move(cfg)) {}
+
+int Compiler_Invocation::run() {
+    using namespace compiler_config;
+
+    // This is deliberately minimal:
+    // - decides per-source vs single-output behaviour
+    // - computes object file names for linking
+    // - calls Linker_Invoke if needed
+    // The actual calls to preprocessor / lexer / parser / sema / codegen
+    // are left to you.
+
+    std::vector<std::string> object_files;
+
+    for (const auto &src : config.sources) {
+        if (config.flags.verbose) {
+            std::cerr << "cudo: compiling " << src << "\n";
+        }
+
+        // Here you can:
+        //   - create Preprocessor_Invoke, Lexer_Invoke, Parser_Invoke, Sema_Invoke
+        //   - run your actual frontend + codegen
+        //
+        // For now, we just emulate the object-file naming behaviour
+        // commonly used by compilers.
+
+        if (config.flags.output_format == Output_Format::Object) {
+            if (config.output && config.sources.size() == 1) {
+                object_files.push_back(*config.output);
+            } else {
+                object_files.push_back(with_extension(src, ".o"));
+            }
+        } else if (config.flags.output_format == Output_Format::Executable) {
+            // real codegen would also produce .o files; for now, fake one per source
+            object_files.push_back(with_extension(src, ".o"));
+        } else {
+            // Other formats (Assembly, LLVM, Wasm, Null) do not produce .o here.
+        }
+    }
+
+    // Link if needed
+    Linker_Invoke::Param link_param{config, object_files};
+    Linker_Invoke link_invoke(link_param);
+    link_invoke.invoke();
+
+    return 0;
+}

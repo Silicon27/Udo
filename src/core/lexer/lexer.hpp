@@ -8,20 +8,20 @@
 #include <istream>
 #include <string>
 #include <vector>
-#include <unordered_set>
 #include <map>
 #include <tuple>
-#include <algorithm>
 #include <ranges>
-#include <cctype>
 
 namespace udo::lexer {
 
     enum class TokenType {
         KEYWORD,
         IDENTIFIER,
+        INT_LITERAL,
+        FLOAT_LITERAL,
         NUMBER,
         UNKNOWN,
+        NEWLINE,
         eof,
         COMMENT,
         EQUAL,

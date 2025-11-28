@@ -11,11 +11,6 @@
 int main(int argc, char* argv[]) {
     using namespace udo;
 
-    if (argc < 2) {
-        std::cout << "usage: " << argv[0] << " <file> [options]\n";
-        return 1;
-    }
-
     Compiler_Invocation ci(compiler_config::parse(argc, argv));
 
 }

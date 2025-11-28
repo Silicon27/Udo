@@ -1,14 +1,12 @@
-//
-// Created by David Yang on 2025-10-20.
-//
-
 #ifndef COMPILER_INVOCATION_HPP
 #define COMPILER_INVOCATION_HPP
 
-#include <unordered_map>
 #include <string>
 #include <vector>
 #include <optional>
+#include <memory>
+#include <istream>
+
 #include "../preprocessor/preprocessor.hpp"
 #include "../lexer/lexer.hpp"
 #include "../ast/ast.hpp"
@@ -16,12 +14,11 @@
 
 namespace udo::compiler_config {
 
-
     using namespace udo;
     using namespace udo::lexer;
 
     enum class Opt_Level {
-        O0, // compiler attempts 1:1 of source code, minimal change in output (disabling as many opts as possible)
+        O0, // compiler attempts 1:1 of source code, minimal change in output
         O1, // refer to https://llvm.org/doxygen/classllvm_1_1OptimizationLevel.html for all the below.
         O2,
         O3,
@@ -61,35 +58,42 @@ namespace udo::compiler_config {
         int max_error_count = 20;
 
         // backend flags
-        Opt_Level level = Opt_Level::O1;
-        Output_Format output_format;
+        Opt_Level     level        = Opt_Level::O1;
+        Output_Format output_format = Output_Format::Executable;
+        std::string   output_file;        // raw -o argument, if any
+
+        // pipeline control
+        bool          link = true;       // whether to invoke the linker / produce final executable
     };
 
     /// Necessary arguments
     struct Compiler_Config {
         std::vector<std::string> sources; // sources to compile from
         Flags flags;
+        // Resolved output artifact (final exe or single file output).
+        // May be std::nullopt for per-source outputs (e.g. -c with multiple files).
         std::optional<std::string> output;
     };
 
-    // is meant to take the output of the argc++ library, and is not meant to parse the arguments itself.
+    // takes argv and returns a fully-populated Compiler_Config
     Compiler_Config parse(int argc, char *argv[]);
 
     struct Preprocessor_Invoke {
         struct Param {
             std::string input_file;
         };
+
         Param param;
         explicit Preprocessor_Invoke(const Param &param);
-        Preprocessor preprocessor;
+
+        /// Invoke the preprocessor and return its result.
+        /// For now this just returns a Preprocessor instance.
+        Preprocessor invoke() const;
     };
 
     /// @brief Individual invocation for the Lexer and it's objects
-    ///
-    /// @param param param data for Lexer constructor
     struct Lexer_Invoke {
         /// @brief calling parameters for invocation of the Lexer object
-        /// @param inputStream a `std::istream` object representing the input file
         struct Param {
             std::istream &input_Stream;
         };
@@ -100,7 +104,7 @@ namespace udo::compiler_config {
         explicit Lexer_Invoke(const Param &param);
 
         /// @brief Initialize a Lexer object with Lexer constructor params
-        /// @returns Lexer object,
+        /// @returns Lexer object
         std::unique_ptr<Lexer> invoke() const;
     };
 
@@ -119,16 +123,47 @@ namespace udo::compiler_config {
         std::unique_ptr<parse::Parser> invoke() const;
     };
 
-    struct Linker_Invoke {
+    struct Sema_Invoke {
+        struct Param {
+            std::shared_ptr<ast::ProgramNode> program;
+            int allowed_errors;
+        };
 
+        mutable Param param;
+
+        explicit Sema_Invoke(const Param &param);
+
+        /// Run semantic analysis, mutate the AST in-place.
+        /// For now this is a no-op stub.
+        void invoke() const;
     };
-}
+
+    struct Linker_Invoke {
+        struct Param {
+            Compiler_Config &config;
+            std::vector<std::string> object_files; // input object files from all sources
+        };
+
+        mutable Param param;
+
+        explicit Linker_Invoke(const Param &param);
+
+        /// Invoke the linker. For now this is a stub.
+        void invoke() const;
+    };
+
+} // namespace udo::compiler_config
 
 
 class Compiler_Invocation {
     udo::compiler_config::Compiler_Config config;
+
 public:
     explicit Compiler_Invocation(udo::compiler_config::Compiler_Config config);
+
+    /// Run the entire pipeline (preprocess, lex, parse, sema, codegen, link).
+    /// Currently, codegen is not wired here; focus is on CC as orchestration.
+    int run();
 };
 
 #endif //COMPILER_INVOCATION_HPP

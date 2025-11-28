@@ -52,6 +52,7 @@ set(lld_libs
 add_executable(udo
         src/core/cli/main.cpp
         src/core/cli/compiler_invocation.cpp
+        src/core/lexer/lexer.cpp
 )
 target_link_libraries(udo PRIVATE ${llvm_libs} ${lld_libs})
 target_include_directories(udo PRIVATE ${LLVM_INCLUDE_DIRS})
