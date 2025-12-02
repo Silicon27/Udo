@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <cli/argparse.hpp>
+#include <utility>
 
 #define CUDO_NAME    "cudo"
 #define CUDO_VERSION "0.0.0"
@@ -10,7 +11,7 @@
 using namespace udo;
 using namespace udo::compiler_config;
 
-namespace {
+namespace udo::compiler_config{
 
 std::string with_extension(const std::string &path,
                            const std::string &ext) {
@@ -357,7 +358,7 @@ Compiler_Config parse(int argc, char *argv[]) {
 // you implement internals elsewhere)
 // =====================
 
-Preprocessor_Invoke::Preprocessor_Invoke(const Param &p) : param(p) {}
+Preprocessor_Invoke::Preprocessor_Invoke(Param p) : param(std::move(p)) {}
 
 // Implemented as a stub; you can replace this with your own logic.
 Preprocessor Preprocessor_Invoke::invoke() const {
@@ -373,30 +374,28 @@ std::unique_ptr<Lexer> Lexer_Invoke::invoke() const {
     return std::make_unique<Lexer>(param.input_Stream);
 }
 
-Parser_Invoke::Parser_Invoke(const Param &p) : param(p) {}
+Parser_Invoke::Parser_Invoke(Param p) : param(std::move(p)) {}
 
 std::unique_ptr<parse::Parser> Parser_Invoke::invoke() const {
     // Minimal construction; real usage left to you.
-    return std::make_unique<parse::Parser>(param.program,
-                                           param.tokens,
-                                           param.allowed_errors);
+    return std::make_unique<parse::Parser>(/* implement */);
 }
 
-Sema_Invoke::Sema_Invoke(const Param &p) : param(p) {}
+Sema_Invoke::Sema_Invoke(Param p) : param(std::move(p)) {}
 
 void Sema_Invoke::invoke() const {
     // No-op stub; you can call your real sema passes elsewhere.
     (void)param;
 }
 
-Linker_Invoke::Linker_Invoke(const Param &p) : param(p) {}
+Linker_Invoke::Linker_Invoke(Param p) : param(std::move(p)) {}
 
 void Linker_Invoke::invoke() const {
     if (!param.config.flags.link) {
         return; // nothing to do
     }
 
-    // Stub: you can replace this with lld or your own linker integration.
+    // stub: replace with lld or custom linker
     if (param.config.flags.verbose) {
         std::cerr << "cudo: linking " << param.object_files.size()
                   << " object file(s)";
@@ -413,7 +412,7 @@ void Linker_Invoke::invoke() const {
 // Compiler_Invocation
 // =====================
 
-Compiler_Invocation::Compiler_Invocation(udo::compiler_config::Compiler_Config cfg)
+Compiler_Invocation::Compiler_Invocation(const Compiler_Config& cfg)
     : config(std::move(cfg)) {}
 
 int Compiler_Invocation::run() {

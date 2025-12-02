@@ -15,7 +15,9 @@
 namespace udo::compiler_config {
 
     using namespace udo;
+    using namespace udo::ast;
     using namespace udo::lexer;
+    using namespace udo::parse;
 
     enum class Opt_Level {
         O0, // compiler attempts 1:1 of source code, minimal change in output
@@ -52,20 +54,6 @@ namespace udo::compiler_config {
         Executable
     };
 
-    struct Flags {
-        // frontend flags
-        bool verbose = false;
-        int max_error_count = 20;
-
-        // backend flags
-        Opt_Level     level        = Opt_Level::O1;
-        Output_Format output_format = Output_Format::Executable;
-        std::string   output_file;        // raw -o argument, if any
-
-        // pipeline control
-        bool          link = true;       // whether to invoke the linker / produce final executable
-    };
-
     /// Necessary arguments
     struct Compiler_Config {
         std::vector<std::string> sources; // sources to compile from
@@ -84,7 +72,7 @@ namespace udo::compiler_config {
         };
 
         Param param;
-        explicit Preprocessor_Invoke(const Param &param);
+        explicit Preprocessor_Invoke(Param param);
 
         /// Invoke the preprocessor and return its result.
         /// For now this just returns a Preprocessor instance.
@@ -118,7 +106,7 @@ namespace udo::compiler_config {
 
         mutable Param param;
 
-        explicit Parser_Invoke(const Param &param);
+        explicit Parser_Invoke(Param param);
 
         std::unique_ptr<parse::Parser> invoke() const;
     };
@@ -131,7 +119,7 @@ namespace udo::compiler_config {
 
         mutable Param param;
 
-        explicit Sema_Invoke(const Param &param);
+        explicit Sema_Invoke(Param param);
 
         /// Run semantic analysis, mutate the AST in-place.
         /// For now this is a no-op stub.
@@ -146,7 +134,7 @@ namespace udo::compiler_config {
 
         mutable Param param;
 
-        explicit Linker_Invoke(const Param &param);
+        explicit Linker_Invoke(Param param);
 
         /// Invoke the linker. For now this is a stub.
         void invoke() const;
@@ -159,7 +147,7 @@ class Compiler_Invocation {
     udo::compiler_config::Compiler_Config config;
 
 public:
-    explicit Compiler_Invocation(udo::compiler_config::Compiler_Config config);
+    explicit Compiler_Invocation(const udo::compiler_config::Compiler_Config& config);
 
     /// Run the entire pipeline (preprocess, lex, parse, sema, codegen, link).
     /// Currently, codegen is not wired here; focus is on CC as orchestration.

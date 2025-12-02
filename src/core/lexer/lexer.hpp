@@ -11,6 +11,7 @@
 #include <map>
 #include <tuple>
 #include <ranges>
+#include <unordered_set>
 
 namespace udo::lexer {
 
