@@ -1,4 +1,4 @@
-#include "Lexer.hpp"
+#include "lexer.hpp"
 
 namespace udo::lexer {
 
@@ -183,10 +183,8 @@ Token Lexer::tokenizeNumber() {
                 lexeme += s[currentPos++];
 
                 while (currentPos < s.size()) {
-                    if (validDigit(s[currentPos])) {
-                        lexeme += s[currentPos++];
-                    } else if (isSeparator(s[currentPos]) &&
-                               currentPos + 1 < s.size() && validDigit(s[currentPos + 1])) {
+                    if (validDigit(s[currentPos]) ||
+                        (isSeparator(s[currentPos]) && currentPos + 1 < s.size() && validDigit(s[currentPos + 1]))) {
                         lexeme += s[currentPos++];
                     } else {
                         break;

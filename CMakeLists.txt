@@ -42,17 +42,31 @@ llvm_map_components_to_libnames(llvm_libs
         bitwriter
         passes
 )
+find_library(LLD_COMMON lldCommon HINTS ${LLVM_LIBRARY_DIRS})
+find_library(LLD_ELF lldELF HINTS ${LLVM_LIBRARY_DIRS})
+find_library(LLD_COFF lldCOFF HINTS ${LLVM_LIBRARY_DIRS})
+find_library(LLD_MACHO lldMachO HINTS ${LLVM_LIBRARY_DIRS})
+find_library(LLD_WASM lldWasm HINTS ${LLVM_LIBRARY_DIRS})
+
 set(lld_libs
-    lldCommon
-    lldELF
-    lldCOFF
-    lldMachO
-    lldWasm
+        ${LLD_COMMON}
+        ${LLD_ELF}
+        ${LLD_COFF}
+        ${LLD_MACHO}
+        ${LLD_WASM}
 )
+
+
 add_executable(udo
         src/core/cli/main.cpp
         src/core/cli/compiler_invocation.cpp
         src/core/lexer/lexer.cpp
+        src/core/preprocessor/preprocessor.cpp
+        src/core/parser/parser.cpp
+        src/core/ast/ast.cpp
+        src/core/error/error.cpp
+        src/core/support/source_manager.cpp
+        test/suite/udo_test.hpp
 )
 target_link_libraries(udo PRIVATE ${llvm_libs} ${lld_libs})
 target_include_directories(udo PRIVATE ${LLVM_INCLUDE_DIRS})
@@ -61,3 +75,13 @@ include_directories(
         SYSTEM
         src/core
 )
+
+
+
+# ============================================================================
+# Testing
+# ============================================================================
+option(BUILD_TESTS "Build the test suite" ON)
+if(BUILD_TESTS)
+    add_subdirectory(test)
+endif()

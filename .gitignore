@@ -1,2 +1,14 @@
 cmake-build-debug/
 .idea/
+*.iml
+*.log
+*.out
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.a
+*.dylib
+*.vscode/
+.cache

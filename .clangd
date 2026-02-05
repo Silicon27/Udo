@@ -1,0 +1,30 @@
+CompileFlags:
+  Add:
+    - "-std=c++20"
+    - "-stdlib=libc++"
+    # LLVM/Homebrew paths (Apple Silicon)
+    - "-resource-dir=/opt/homebrew/opt/llvm/lib/clang/21"
+    - "-isystem/opt/homebrew/opt/llvm/include/c++/v1"
+    - "-isystem/opt/homebrew/opt/llvm/lib/clang/21/include"
+    - "-isystem/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
+  Remove:
+    # Remove Apple clang flags from compile_commands.json that conflict with Homebrew LLVM
+    - "-std=gnu++*"
+  Compiler: /opt/homebrew/opt/llvm/bin/clang++
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - modernize-*
+      - bugprone-*
+      - performance-*
+      - readability-*
+    Remove:
+      - modernize-use-trailing-return-type
+      - readability-identifier-length
+  UnusedIncludes: Strict
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes

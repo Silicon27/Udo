@@ -7,52 +7,22 @@
 #include <memory>
 #include <istream>
 
+#include "compiler_config.hpp"
+#include "../error/error.hpp"
 #include "../preprocessor/preprocessor.hpp"
 #include "../lexer/lexer.hpp"
 #include "../ast/ast.hpp"
-#include "../parser/parser.hpp"
+
+// Forward declaration to avoid circular dependency
+namespace udo::parse {
+    class Parser;
+}
 
 namespace udo::compiler_config {
 
     using namespace udo;
     using namespace udo::ast;
     using namespace udo::lexer;
-    using namespace udo::parse;
-
-    enum class Opt_Level {
-        O0, // compiler attempts 1:1 of source code, minimal change in output
-        O1, // refer to https://llvm.org/doxygen/classllvm_1_1OptimizationLevel.html for all the below.
-        O2,
-        O3,
-        Os,
-        Oz
-    };
-
-    enum class Output_Format {
-        /// Native object file (ELF / Mach-O / COFF depending on target)
-        Object,
-
-        /// Assembly (.s)
-        Assembly,
-
-        /// LLVM IR (textual .ll)
-        LLVM_IR,
-
-        /// LLVM Bitcode (.bc)
-        LLVM_Bitcode,
-
-        /// wasm object file (WebAssembly)
-        Wasm_Object,
-
-        /// wasm text format (.wat)
-        Wasm_Text,
-
-        /// Null output (used for benchmarking / analysis)
-        Null,
-
-        // Native executable, requires lld
-        Executable
-    };
 
     /// Necessary arguments
     struct Compiler_Config {
@@ -61,6 +31,8 @@ namespace udo::compiler_config {
         // Resolved output artifact (final exe or single file output).
         // May be std::nullopt for per-source outputs (e.g. -c with multiple files).
         std::optional<std::string> output;
+        // Reference to the shared diagnostics engine
+        diag::DiagnosticsEngine* diag = nullptr;
     };
 
     // takes argv and returns a fully-populated Compiler_Config
@@ -69,6 +41,7 @@ namespace udo::compiler_config {
     struct Preprocessor_Invoke {
         struct Param {
             std::string input_file;
+            diag::DiagnosticsEngine& diag;
         };
 
         Param param;
@@ -84,6 +57,7 @@ namespace udo::compiler_config {
         /// @brief calling parameters for invocation of the Lexer object
         struct Param {
             std::istream &input_Stream;
+            diag::DiagnosticsEngine& diag;
         };
 
         /// Mutable because Param.inputStream may be altered by Lexer constructor
@@ -99,14 +73,15 @@ namespace udo::compiler_config {
     /// @brief Individual invocation of Parser and it's objects
     struct Parser_Invoke {
         struct Param {
+            diag::DiagnosticsEngine& diag;
             std::shared_ptr<ast::ProgramNode> program;
             std::vector<Token> tokens;
-            int allowed_errors;
+            Flags flags;
         };
 
         mutable Param param;
 
-        explicit Parser_Invoke(Param param);
+        explicit Parser_Invoke(const Param& param);
 
         std::unique_ptr<parse::Parser> invoke() const;
     };
@@ -115,6 +90,7 @@ namespace udo::compiler_config {
         struct Param {
             std::shared_ptr<ast::ProgramNode> program;
             int allowed_errors;
+            diag::DiagnosticsEngine& diag;
         };
 
         mutable Param param;
@@ -130,6 +106,7 @@ namespace udo::compiler_config {
         struct Param {
             Compiler_Config &config;
             std::vector<std::string> object_files; // input object files from all sources
+            diag::DiagnosticsEngine& diag;
         };
 
         mutable Param param;
@@ -145,13 +122,18 @@ namespace udo::compiler_config {
 
 class Compiler_Invocation {
     udo::compiler_config::Compiler_Config config;
+    udo::diag::DiagnosticsEngine& diag_;
 
 public:
-    explicit Compiler_Invocation(const udo::compiler_config::Compiler_Config& config);
+    explicit Compiler_Invocation(const udo::compiler_config::Compiler_Config& config,
+                                 udo::diag::DiagnosticsEngine& diag);
 
     /// Run the entire pipeline (preprocess, lex, parse, sema, codegen, link).
     /// Currently, codegen is not wired here; focus is on CC as orchestration.
     int run();
+
+    /// Get the diagnostics engine
+    udo::diag::DiagnosticsEngine& getDiagnostics() { return diag_; }
 };
 
 #endif //COMPILER_INVOCATION_HPP

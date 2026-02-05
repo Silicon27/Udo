@@ -1,4 +1,5 @@
 #include "compiler_invocation.hpp"
+#include <parser/parser.hpp>
 
 #include <filesystem>
 #include <iostream>
@@ -358,7 +359,7 @@ Compiler_Config parse(int argc, char *argv[]) {
 // you implement internals elsewhere)
 // =====================
 
-Preprocessor_Invoke::Preprocessor_Invoke(Param p) : param(std::move(p)) {}
+Preprocessor_Invoke::Preprocessor_Invoke(Param param) : param(param) {}
 
 // Implemented as a stub; you can replace this with your own logic.
 Preprocessor Preprocessor_Invoke::invoke() const {
@@ -367,28 +368,29 @@ Preprocessor Preprocessor_Invoke::invoke() const {
     return Preprocessor(param.input_file);
 }
 
-Lexer_Invoke::Lexer_Invoke(const Param &p) : param(p) {}
+Lexer_Invoke::Lexer_Invoke(const Param &param) : param(param) {}
 
 std::unique_ptr<Lexer> Lexer_Invoke::invoke() const {
     // Minimal construction; you can add extra wiring where you actually use it.
     return std::make_unique<Lexer>(param.input_Stream);
 }
 
-Parser_Invoke::Parser_Invoke(Param p) : param(std::move(p)) {}
+Parser_Invoke::Parser_Invoke(const Param& param) : param(param) {}
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 std::unique_ptr<parse::Parser> Parser_Invoke::invoke() const {
     // Minimal construction; real usage left to you.
-    return std::make_unique<parse::Parser>(/* implement */);
+    return std::make_unique<parse::Parser>(param.tokens, param.flags, param.program, param.diag);
 }
 
-Sema_Invoke::Sema_Invoke(Param p) : param(std::move(p)) {}
+Sema_Invoke::Sema_Invoke(Param param) : param(param) {}
 
 void Sema_Invoke::invoke() const {
     // No-op stub; you can call your real sema passes elsewhere.
     (void)param;
 }
 
-Linker_Invoke::Linker_Invoke(Param p) : param(std::move(p)) {}
+Linker_Invoke::Linker_Invoke(Param param) : param(param) {}
 
 void Linker_Invoke::invoke() const {
     if (!param.config.flags.link) {
@@ -412,9 +414,11 @@ void Linker_Invoke::invoke() const {
 // Compiler_Invocation
 // =====================
 
-Compiler_Invocation::Compiler_Invocation(const Compiler_Config& cfg)
-    : config(std::move(cfg)) {}
+Compiler_Invocation::Compiler_Invocation(const Compiler_Config& config,
+                                         udo::diag::DiagnosticsEngine& diag)
+    : config(std::move(config)), diag_(diag) {}
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 int Compiler_Invocation::run() {
     using namespace compiler_config;
 
@@ -425,38 +429,7 @@ int Compiler_Invocation::run() {
     // The actual calls to preprocessor / lexer / parser / sema / codegen
     // are left to you.
 
-    std::vector<std::string> object_files;
 
-    for (const auto &src : config.sources) {
-        if (config.flags.verbose) {
-            std::cerr << "cudo: compiling " << src << "\n";
-        }
-
-        // Here you can:
-        //   - create Preprocessor_Invoke, Lexer_Invoke, Parser_Invoke, Sema_Invoke
-        //   - run your actual frontend + codegen
-        //
-        // For now, we just emulate the object-file naming behaviour
-        // commonly used by compilers.
-
-        if (config.flags.output_format == Output_Format::Object) {
-            if (config.output && config.sources.size() == 1) {
-                object_files.push_back(*config.output);
-            } else {
-                object_files.push_back(with_extension(src, ".o"));
-            }
-        } else if (config.flags.output_format == Output_Format::Executable) {
-            // real codegen would also produce .o files; for now, fake one per source
-            object_files.push_back(with_extension(src, ".o"));
-        } else {
-            // Other formats (Assembly, LLVM, Wasm, Null) do not produce .o here.
-        }
-    }
-
-    // Link if needed
-    Linker_Invoke::Param link_param{config, object_files};
-    Linker_Invoke link_invoke(link_param);
-    link_invoke.invoke();
 
     return 0;
 }

@@ -4,11 +4,29 @@
 
 #include "parser.hpp"
 
+
 namespace udo::parse {
-    Token Parser::peek(const int n) { return tokens[pos + n]; }
+    Token Parser::peek(const int n) const { return tokens[pos + n]; }
+    Token Parser::consume(const int n) {Token t = tokens[pos]; pos += n; return t;}
+    bool Parser::consume_and_expect(TokenType exp, const Token& curr) {
+        if (curr.type == exp) {
+            pos++;
+            return true; 
+        }
 
-    Parser::Parser(const std::vector<Token> &tokens, const Flags &flag, std::shared_ptr<ProgramNode> &program)
-    : program(program), tokens(tokens), flags(flag) {}
+        diagnostics_.Report(diag::parse::err_expected_expression)
+                << "expected token";
+        return false;
+    }
+
+    bool Parser::is_at_end() const { return pos >= tokens.size() || tokens[pos].type == TokenType::eof; }
 
 
+    Parser::Parser(const std::vector<Token> &tokens, Flags flag, std::shared_ptr<ProgramNode> &program, diag::DiagnosticsEngine& diag)
+        : diagnostics_(diag), program(program), tokens(tokens), flags(std::move(flag)) {
+    }
+
+    void Parser::parse() {
+
+    }
 }

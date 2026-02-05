@@ -22,6 +22,7 @@
 #include <any>
 #include <map>
 #include <algorithm>
+#include <memory>
 
 namespace udo::test {
 
@@ -90,6 +91,8 @@ public:
     void teardown(std::function<void()> fn) { teardown_fn = std::move(fn); }
     void before_each(std::function<void()> fn) { before_each_fn = std::move(fn); }
     void after_each(std::function<void()> fn) { after_each_fn = std::move(fn); }
+
+    [[nodiscard]] const std::string& get_name() const { return suite_name; }
 
     std::vector<TestResult> run(bool verbose = false) {
         std::vector<TestResult> results;
@@ -198,6 +201,19 @@ public:
 
     void add_suite(std::shared_ptr<TestSuite> suite) {
         suites.push_back(suite);
+    }
+
+    void add_suite(std::unique_ptr<TestSuite> suite) {
+        suites.push_back(std::move(suite));
+    }
+
+    void list_tests() {
+        std::cout << "\n" << color::CYAN << color::BOLD
+                  << "Available Test Suites:" << color::RESET << "\n";
+        for (const auto& suite : suites) {
+            std::cout << "  - " << suite->get_name() << "\n";
+        }
+        std::cout << "\n";
     }
 
     int run_all(bool verbose = false, bool stop_on_fail = false) {

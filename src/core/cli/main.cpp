@@ -5,12 +5,21 @@
 #include <optional>
 
 #include "compiler_invocation.hpp"
+#include "error/error.hpp"
 
 /// cudo - Udo Compiler
 
 int main(int argc, char* argv[]) {
     using namespace udo;
 
-    Compiler_Invocation ci(compiler_config::parse(argc, argv));
+    // Create the shared diagnostics engine
+    auto diag = diag::createDiagnosticsEngine();
 
+    // Parse command line and create compiler invocation
+    auto config = compiler_config::parse(argc, argv);
+    config.diag = diag.get();
+
+    Compiler_Invocation ci(config, *diag);
+
+    return ci.run();
 }
