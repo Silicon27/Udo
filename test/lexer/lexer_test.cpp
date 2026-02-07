@@ -30,6 +30,39 @@ static std::vector<Token> get_meaningful_tokens(const std::vector<Token>& tokens
     return result;
 }
 
+// Helper to check if a TokenType is a keyword type
+static bool is_keyword_type(TokenType type) {
+    switch (type) {
+        case TokenType::kw_let:
+        case TokenType::kw_as:
+        case TokenType::kw_if:
+        case TokenType::kw_else:
+        case TokenType::kw_functor:
+        case TokenType::kw_return:
+        case TokenType::kw_i4:
+        case TokenType::kw_i8:
+        case TokenType::kw_i16:
+        case TokenType::kw_i32:
+        case TokenType::kw_i64:
+        case TokenType::kw_i128:
+        case TokenType::kw_f4:
+        case TokenType::kw_f8:
+        case TokenType::kw_f16:
+        case TokenType::kw_f32:
+        case TokenType::kw_f64:
+        case TokenType::kw_f128:
+        case TokenType::kw_char:
+        case TokenType::kw_bool:
+        case TokenType::kw_import:
+        case TokenType::kw_mod:
+        case TokenType::kw_export:
+        case TokenType::kw_bind:
+            return true;
+        default:
+            return false;
+    }
+}
+
 void register_lexer_tests(TestRunner& runner) {
 
     // ========================================================================
@@ -112,45 +145,44 @@ void register_lexer_tests(TestRunner& runner) {
 
     auto keyword_suite = std::make_unique<TestSuite>("Lexer::Keywords");
 
-    keyword_suite->add_test("fn_keyword", []() {
-        auto tokens = get_meaningful_tokens(tokenize_string("fn"));
+    keyword_suite->add_test("functor_keyword", []() {
+        auto tokens = get_meaningful_tokens(tokenize_string("functor"));
         UDO_ASSERT_EQ(tokens.size(), 1u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD));
-        UDO_ASSERT_STREQ(tokens[0].lexeme, "fn");
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_functor));
+        UDO_ASSERT_STREQ(tokens[0].lexeme, "functor");
     });
 
     keyword_suite->add_test("let_keyword", []() {
         auto tokens = get_meaningful_tokens(tokenize_string("let"));
         UDO_ASSERT_EQ(tokens.size(), 1u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD));
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_let));
     });
 
     keyword_suite->add_test("if_else_keywords", []() {
         auto tokens = get_meaningful_tokens(tokenize_string("if else"));
         UDO_ASSERT_EQ(tokens.size(), 2u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD));
-        UDO_ASSERT_EQ(static_cast<int>(tokens[1].type), static_cast<int>(TokenType::KEYWORD));
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_if));
+        UDO_ASSERT_EQ(static_cast<int>(tokens[1].type), static_cast<int>(TokenType::kw_else));
     });
 
     keyword_suite->add_test("return_keyword", []() {
         auto tokens = get_meaningful_tokens(tokenize_string("return"));
         UDO_ASSERT_EQ(tokens.size(), 1u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD));
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_return));
     });
 
     keyword_suite->add_test("type_keywords", []() {
         auto tokens = get_meaningful_tokens(tokenize_string("i32 i64 i128"));
         UDO_ASSERT_EQ(tokens.size(), 3u);
-        for (const auto& t : tokens) {
-            UDO_ASSERT_EQ(static_cast<int>(t.type), static_cast<int>(TokenType::KEYWORD));
-        }
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_i32));
+        UDO_ASSERT_EQ(static_cast<int>(tokens[1].type), static_cast<int>(TokenType::kw_i64));
+        UDO_ASSERT_EQ(static_cast<int>(tokens[2].type), static_cast<int>(TokenType::kw_i128));
     });
 
-    keyword_suite->add_test("declare_as_keywords", []() {
-        auto tokens = get_meaningful_tokens(tokenize_string("declare as"));
-        UDO_ASSERT_EQ(tokens.size(), 2u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD));
-        UDO_ASSERT_EQ(static_cast<int>(tokens[1].type), static_cast<int>(TokenType::KEYWORD));
+    keyword_suite->add_test("as_keyword", []() {
+        auto tokens = get_meaningful_tokens(tokenize_string("as"));
+        UDO_ASSERT_EQ(tokens.size(), 1u);
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_as));
     });
 
     runner.add_suite(std::move(keyword_suite));
@@ -351,7 +383,7 @@ void register_lexer_tests(TestRunner& runner) {
     expr_suite->add_test("variable_declaration", []() {
         auto tokens = get_meaningful_tokens(tokenize_string("let x = 42;"));
         UDO_ASSERT_EQ(tokens.size(), 5u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD)); // let
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_let)); // let
         UDO_ASSERT_EQ(static_cast<int>(tokens[1].type), static_cast<int>(TokenType::IDENTIFIER)); // x
         UDO_ASSERT_EQ(static_cast<int>(tokens[2].type), static_cast<int>(TokenType::EQUAL)); // =
         UDO_ASSERT_EQ(static_cast<int>(tokens[3].type), static_cast<int>(TokenType::INT_LITERAL)); // 42
@@ -359,9 +391,9 @@ void register_lexer_tests(TestRunner& runner) {
     });
 
     expr_suite->add_test("function_declaration", []() {
-        auto tokens = get_meaningful_tokens(tokenize_string("fn add(a: i32, b: i32)"));
+        auto tokens = get_meaningful_tokens(tokenize_string("functor add(a: i32, b: i32)"));
         UDO_ASSERT_GE(tokens.size(), 10u);
-        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::KEYWORD)); // fn
+        UDO_ASSERT_EQ(static_cast<int>(tokens[0].type), static_cast<int>(TokenType::kw_functor)); // functor
         UDO_ASSERT_EQ(static_cast<int>(tokens[1].type), static_cast<int>(TokenType::IDENTIFIER)); // add
         UDO_ASSERT_EQ(static_cast<int>(tokens[2].type), static_cast<int>(TokenType::LPAREN)); // (
     });

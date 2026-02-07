@@ -25,10 +25,21 @@ namespace udo::parse {
     };
 
     class Parser {
+    public:
+        enum class Parser_Context {
+            Top_Level,
+            Namespace,
+            Function,
+            Statement,
+        };
+
+
+    private:
         diag::DiagnosticsEngine& diagnostics_;
         std::shared_ptr<ProgramNode> program;
         std::vector<Token> tokens;
         Flags flags;
+        Parser_Context context;
         int pos = 0;
 
     public:
@@ -41,13 +52,28 @@ namespace udo::parse {
         /// consume the current token and check if it matches the expected type, if it does, return true, otherwise report an error and return false
         bool consume_and_expect(TokenType exp, const Token& curr);
 
+        // EOF/token stream check
         bool is_at_end() const;
+
+        // Entry point is parse()
+        void parse();
+
+        // This will be called in a loop from parse() until we reach the end of the token stream.
+        void parse_top_level_decl();
+
+        // We also thereby create a specialized first top level declaration
+        // parser, which is responsible mainly for parsing module declarations and imports
+        // TODO
+        bool parse_first_top_level_decl();
+
+        // statement parsers
+        void parse_variable_decl();
+
+        // expression parsers
+
 
         explicit Parser(const std::vector<Token> &tokens, Flags flag, std::shared_ptr<ProgramNode> &program, diag::DiagnosticsEngine& diag);
         ~Parser() = default;
-
-        void parse();
-
     };
 }
 

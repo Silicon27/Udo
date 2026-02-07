@@ -11,57 +11,22 @@
 #include <map>
 #include <tuple>
 #include <ranges>
-#include <unordered_set>
+#include <support/global_constants.hpp>
 
 namespace udo::lexer {
-
-    enum class TokenType {
-        KEYWORD,
-        IDENTIFIER,
-        INT_LITERAL,
-        FLOAT_LITERAL,
-        NUMBER,
-        UNKNOWN,
-        NEWLINE,
-        eof,
-        COMMENT,
-        EQUAL,
-        SEMICOLON,
-        DOUBLE_COLON,
-        COMMA,
-        COLON,
-        LBRACE,
-        RBRACE,
-        LBRACKET,
-        RBRACKET,
-        LPAREN,
-        RPAREN,
-        PLUS,
-        MINUS,
-        STAR,
-        SLASH,
-        BANG,
-        BANG_EQUAL,
-        EQUAL_EQUAL,
-        LESS,
-        LESS_EQUAL,
-        GREATER,
-        GREATER_EQUAL,
-        DOT,
-        DOUBLE_DOT,
-        TRIPLE_DOT,
-    };
 
     struct Token {
         TokenType type;
         std::string lexeme;
         int line;
         int column;
+
+        TokenType get_type() const { return type; }
+        std::string get_lexeme() const { return lexeme; }
+        int get_line() const { return line; }
+        int get_column() const { return column; }
     };
 
-    inline bool isKeyword(const std::string &str);
-
-    inline TokenType get_symbol_type(const std::string &str);
 
     class Lexer {
     public:
@@ -75,7 +40,7 @@ namespace udo::lexer {
         std::size_t currentPos;
         int lineNumber;
         std::map<int, std::string> unfilteredLines;
-        std::vector<std::string> symbols;
+        const std::vector<std::string>& symbols;
         std::string spaces;
         std::vector<Token> unfilteredTokens;
 
