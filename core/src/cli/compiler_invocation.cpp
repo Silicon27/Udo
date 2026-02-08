@@ -1,4 +1,4 @@
-#include "compiler_invocation.hpp"
+#include <cli/compiler_invocation.hpp>
 #include <parser/parser.hpp>
 
 #include <filesystem>

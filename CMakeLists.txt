@@ -58,14 +58,14 @@ set(lld_libs
 
 
 add_executable(udo
-        src/core/cli/main.cpp
-        src/core/cli/compiler_invocation.cpp
-        src/core/lexer/lexer.cpp
-        src/core/preprocessor/preprocessor.cpp
-        src/core/parser/parser.cpp
-        src/core/ast/ast.cpp
-        src/core/error/error.cpp
-        src/core/support/source_manager.cpp
+        core/src/cli/main.cpp
+        core/src/cli/compiler_invocation.cpp
+        core/src/lexer/lexer.cpp
+        core/src/preprocessor/preprocessor.cpp
+        core/src/parser/parser.cpp
+        core/src/ast/ast.cpp
+        core/src/error/error.cpp
+        core/src/support/source_manager.cpp
         test/suite/udo_test.hpp
 )
 target_link_libraries(udo PRIVATE ${llvm_libs} ${lld_libs})
@@ -73,7 +73,7 @@ target_include_directories(udo PRIVATE ${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(
         SYSTEM
-        src/core
+        core/include
 )
 
 

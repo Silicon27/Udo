@@ -48,36 +48,36 @@ set(PREPROCESSOR_TEST_SOURCES
 # Core source files needed for testing
 # ============================================================================
 set(LEXER_CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/core/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/lexer/lexer.cpp
 )
 
 set(PARSER_CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/core/parser/parser.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/lexer/lexer.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/error/error.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/support/source_manager.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/lexer/lexer.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/error/error.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/support/source_manager.cpp
 )
 
 set(AST_CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/core/ast/ast.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/ast/ast.cpp
 )
 
 set(ERROR_CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/core/error/error.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/support/source_manager.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/error/error.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/support/source_manager.cpp
 )
 
 set(PREPROCESSOR_CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/core/preprocessor/preprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/preprocessor/preprocessor.cpp
 )
 
 set(ALL_CORE_SOURCES
     ${LEXER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/core/parser/parser.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/parser/parser.cpp
     ${AST_CORE_SOURCES}
     ${ERROR_CORE_SOURCES}
     ${PREPROCESSOR_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/core/support/source_manager.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/support/source_manager.cpp
         main.cpp
 )
 
@@ -95,7 +95,7 @@ add_executable(udo_tests
 )
 
 target_include_directories(udo_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/core/src
     ${CMAKE_CURRENT_SOURCE_DIR}/suite
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -110,7 +110,7 @@ add_executable(lexer_tests
     ${LEXER_CORE_SOURCES}
 )
 target_include_directories(lexer_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/core/src
     ${CMAKE_CURRENT_SOURCE_DIR}/suite
 )
 target_compile_definitions(lexer_tests PRIVATE LEXER_TEST_STANDALONE)
@@ -121,7 +121,7 @@ add_executable(parser_tests
     ${PARSER_CORE_SOURCES}
 )
 target_include_directories(parser_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/core/src
     ${CMAKE_CURRENT_SOURCE_DIR}/suite
 )
 target_compile_definitions(parser_tests PRIVATE PARSER_TEST_STANDALONE)
@@ -132,7 +132,7 @@ add_executable(ast_tests
     ${AST_CORE_SOURCES}
 )
 target_include_directories(ast_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/core/src
     ${CMAKE_CURRENT_SOURCE_DIR}/suite
 )
 target_compile_definitions(ast_tests PRIVATE AST_TEST_STANDALONE)
@@ -143,7 +143,7 @@ add_executable(error_tests
     ${ERROR_CORE_SOURCES}
 )
 target_include_directories(error_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/core/src
     ${CMAKE_CURRENT_SOURCE_DIR}/suite
 )
 target_compile_definitions(error_tests PRIVATE ERROR_TEST_STANDALONE)
@@ -154,7 +154,7 @@ add_executable(preprocessor_tests
     ${PREPROCESSOR_CORE_SOURCES}
 )
 target_include_directories(preprocessor_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/core/src
     ${CMAKE_CURRENT_SOURCE_DIR}/suite
 )
 target_compile_definitions(preprocessor_tests PRIVATE PREPROCESSOR_TEST_STANDALONE)
