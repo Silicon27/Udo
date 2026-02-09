@@ -13,27 +13,30 @@ namespace udo::ast {
 }
 
 namespace udo::ast {
+    enum class StmtKind {
+        Expression,
+        If,
+        While,
+        For,
+        Return,
+        Block,
+    };
+
     class Stmt {
     public:
-        enum class StmtKind {
-            Expression,
-            If,
-            While,
-            For,
-            Return,
-            Block,
-        };
+        
+    };
+
+    enum class DeclKind {
+        Variable,
+        Function,
+        Struct,
+        Enum,
+        Module,
     };
 
     class Decl {
     public:
-        enum class DeclKind {
-            Variable,
-            Function,
-            Struct,
-            Enum,
-            Module,
-        };
 
         udo::Source_Range source_range;
     };

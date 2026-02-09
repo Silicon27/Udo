@@ -5,9 +5,15 @@
 #ifndef UDO_AST_CONTEXT_HPP
 #define UDO_AST_CONTEXT_HPP
 
+#include <vector>
+
 class ASTContext {
     struct BumpPtrAllocator {
-        // represent each memory "slab"
+        // Nodes are allocated in a bump pointer allocator for fast allocation and deallocation.
+        // This is a simple implementation that does not support deallocation of individual nodes.
+        std::vector<char*> blocks;
+
+
     };
 };
 

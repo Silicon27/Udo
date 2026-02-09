@@ -5,11 +5,11 @@ Memory provisioning is an operation the compiler provides to requested memory
 
 Example code snippet:
 
-```c++
+```rust
 @use <core/io>
 
-main :: void => { // no arguments must be marked as void
-    int v = 1;
+main() :: void { // no arguments must be marked as void
+    let v: i32 = 1;
     io.print(v);
     return 0;
 }
@@ -20,7 +20,7 @@ main :: void => { // no arguments must be marked as void
 ### Concepts
 Udo introduces `contracts`, which is a form of allowance or constraint between the programmer and the compiler.
 
-```c++
+```rust
 @use <core/contracts>
 
 // form alias if needed
@@ -28,7 +28,7 @@ Udo introduces `contracts`, which is a form of allowance or constraint between t
 
 // nopvs is a compiler promise to never provision memory used in my_ctr
 <contract #contacts.nopvs> // no provisioning, dangerous
-execution my_ctr int: (int x) { // int is defined as an alias of int32
+execution my_ctr (x: i32) :: i32 { // int is defined as an alias of int32
     return x;
 }
 ```
@@ -37,3 +37,5 @@ execution my_ctr int: (int x) { // int is defined as an alias of int32
 > 
 > the `execution` of said contract is formed similar to that of a function
 The cboard (contract board) keeps tab on contracts present at CET, or, Contract Enforcement Time.
+> 
+> idea: make a language that is for systems, but one that has a repl. The important aspect of this is that we are able to experiment with raw memory as if we were programming in a file
