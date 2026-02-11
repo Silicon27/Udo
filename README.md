@@ -8,8 +8,8 @@ Example code snippet:
 ```rust
 @use <core/io>
 
-main() :: void { // no arguments must be marked as void
-    let v: i32 = 1;
+main() :: void { 
+    let v = 1; // type inference
     io.print(v);
     return 0;
 }
@@ -28,7 +28,7 @@ Udo introduces `contracts`, which is a form of allowance or constraint between t
 
 // nopvs is a compiler promise to never provision memory used in my_ctr
 <contract #contacts.nopvs> // no provisioning, dangerous
-execution my_ctr (x: i32) :: i32 { // int is defined as an alias of int32
+execution my_ctr(x: i32) :: i32 { // int is defined as an alias of int32
     return x;
 }
 ```

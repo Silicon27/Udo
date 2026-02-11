@@ -11,7 +11,7 @@
 #include "../error/error.hpp"
 #include "../preprocessor/preprocessor.hpp"
 #include "../lexer/lexer.hpp"
-#include "../../src/ast/ast.hpp"
+#include "../ast/ast.hpp"
 
 // Forward declaration to avoid circular dependency
 namespace udo::parse {

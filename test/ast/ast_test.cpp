@@ -5,6 +5,7 @@
 
 #include "ast_test.hpp"
 #include <ast/ast.hpp>
+#include <ast/ASTContext.hpp>
 
 namespace udo::test {
 
@@ -22,6 +23,40 @@ void register_ast_tests(TestRunner& runner) {
     });
 
     runner.add_suite(std::move(node_suite));
+
+    // ========================================================================
+    // AST Context Tests
+    // ========================================================================
+
+    auto context_suite = std::make_unique<TestSuite>("AST::Context");
+
+    context_suite->add_test("alignment_bug_reproduction", []() {
+        // We want to verify that is_full(size, alignment) correctly accounts for padding.
+
+        ASTContext::BumpPtrAllocator allocator(64);
+
+        // 1. Fill the slab partially so that the next allocation might require padding.
+        // Allocate 4 bytes.
+        void* p1 = allocator.allocate(4, 4);
+        UDO_ASSERT_NOT_NULL(p1);
+
+        // 2. Request an allocation that exactly fits the remaining capacity IF no padding is needed,
+        // but REQUIRES padding.
+        // is_full(60, 8) should now return true, causing a new slab to be allocated.
+        
+        void* p2 = allocator.allocate(60, 8);
+        
+        // This should NOT be null because it should have been allocated in a new slab.
+        UDO_ASSERT_NOT_NULL(p2);
+
+        // ensure a second slab is generated
+        UDO_ASSERT_GT(allocator.num_slabs(), 1);
+        
+        // Check that it's aligned
+        UDO_ASSERT_EQ(reinterpret_cast<std::uintptr_t>(p2) % 8, 0);
+    });
+
+    runner.add_suite(std::move(context_suite));
 
     // ========================================================================
     // AST Traversal Tests

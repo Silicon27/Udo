@@ -60,6 +60,7 @@ set(PARSER_CORE_SOURCES
 
 set(AST_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/core/src/ast/ast.cpp
+    ${CMAKE_SOURCE_DIR}/core/src/ast/ASTContext.cpp
 )
 
 set(ERROR_CORE_SOURCES
