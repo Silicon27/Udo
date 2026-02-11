@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <memory>
-#include <cstdint>
 
 class ASTContext {
     struct Slab {
@@ -53,8 +52,10 @@ public:
         void* allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t),
                        int size_of_new_slab = 0, bool reuse_free_slab = false);
 
+        [[nodiscard]] int current_slab_index() const { return current_slab_idx; }
         [[nodiscard]] std::size_t num_slabs() const { return slabs.size(); }
         [[nodiscard]] std::size_t num_allocated_bytes() const { return slabs.back().current - slabs.front().buffer; }
+        [[nodiscard]] std::size_t slab_sizes() const { return slab_size; }
     };
 };
 
@@ -68,7 +69,7 @@ ASTContext::BumpPtrAllocator<VecAlloc>::BumpPtrAllocator(const std::size_t initi
 
 template <typename VecAlloc>
 void* ASTContext::BumpPtrAllocator<VecAlloc>::allocate(const std::size_t size, const std::size_t alignment,
-                                                      const int size_of_new_slab, bool reuse_free_slab) {
+                                                      const int size_of_new_slab, const bool reuse_free_slab) {
     if (reuse_free_slab && partially_used_slabs.size() > 0) {
         for (const auto it : partially_used_slabs) {
             if (!it->is_full(size, alignment)) {

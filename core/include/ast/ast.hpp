@@ -24,6 +24,7 @@ namespace udo::ast {
 
     class Stmt {
     public:
+        StmtKind kind;
         
     };
 
@@ -37,6 +38,7 @@ namespace udo::ast {
 
     class Decl {
     public:
+        DeclKind kind;
 
         udo::Source_Range source_range;
     };
