@@ -22,10 +22,19 @@ namespace udo::ast {
         Block,
     };
 
-    class Stmt {
+    class ASTNode {
+    public:
+        virtual ~ASTNode() = default;
+    };
+
+    class ProgramNode : public ASTNode {
+    public:
+        std::vector<std::shared_ptr<ASTNode>> declarations;
+    };
+
+    class Stmt : public ASTNode {
     public:
         StmtKind kind;
-        
     };
 
     enum class DeclKind {
@@ -36,7 +45,7 @@ namespace udo::ast {
         Module,
     };
 
-    class Decl {
+    class Decl : public ASTNode {
     public:
         DeclKind kind;
 

@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <memory>
 
+#include <regex>
+
 namespace udo::test {
 
 // ============================================================================
@@ -33,6 +35,7 @@ namespace color {
     constexpr const char* RESET = "\033[0m";
     constexpr const char* BOLD = "\033[1m";
     constexpr const char* DIM = "\033[2m";
+    constexpr const char* UNDERLINE = "\033[4m";
     constexpr const char* RED = "\033[31m";
     constexpr const char* GREEN = "\033[32m";
     constexpr const char* YELLOW = "\033[33m";
@@ -40,9 +43,98 @@ namespace color {
     constexpr const char* MAGENTA = "\033[35m";
     constexpr const char* CYAN = "\033[36m";
     constexpr const char* WHITE = "\033[37m";
+    constexpr const char* GRAY = "\033[90m";
     constexpr const char* BG_RED = "\033[41m";
     constexpr const char* BG_GREEN = "\033[42m";
 }
+
+// ============================================================================
+// Test Configuration & Logging
+// ============================================================================
+enum class LogLevel {
+    NONE = 0,
+    ERROR = 1,
+    WARN = 2,
+    SUCCESS = 3,
+    INFO = 4,
+    DEBUG = 5,
+    TRACE = 6
+};
+
+struct TestOptions {
+    bool verbose = false;
+    bool stop_on_fail = false;
+    bool use_color = true;
+    LogLevel log_level = LogLevel::INFO;
+    std::string suite_filter = "";
+    std::string test_filter = "";
+    std::ostream* output_stream = &std::cout;
+};
+
+class Logger {
+public:
+    static Logger& instance() {
+        static Logger logger;
+        return logger;
+    }
+
+    void set_options(const TestOptions& opts) { options = &opts; }
+
+    void log(LogLevel level, const std::string& message, int indent_level = 0) {
+        if (!options || level > options->log_level) return;
+
+        std::ostream& os = *(options->output_stream);
+        
+        std::string indent;
+        for (int i = 0; i < indent_level; ++i) {
+            indent += "  ";
+        }
+
+        if (options->use_color) {
+            os << get_level_color(level);
+        }
+
+        if (indent_level > 0) {
+            os << indent << "└─ ";
+        }
+
+        os << message;
+
+        if (options->use_color) {
+            os << color::RESET;
+        }
+        os << "\n";
+    }
+
+    void suite(const std::string& name) {
+        log(LogLevel::INFO, "Suite: " + name, 0);
+    }
+
+    void test(const std::string& name, bool passed, double duration_ms, int indent = 1) {
+        std::stringstream ss;
+        ss << (passed ? "✓ " : "✗ ") << name << " (" << std::fixed << std::setprecision(2) << duration_ms << "ms)";
+        log(passed ? LogLevel::SUCCESS : LogLevel::ERROR, ss.str(), indent);
+    }
+
+private:
+    const TestOptions* options = nullptr;
+
+    const char* get_level_color(LogLevel level) {
+        switch (level) {
+            case LogLevel::ERROR:   return color::RED;
+            case LogLevel::WARN:    return color::YELLOW;
+            case LogLevel::INFO:    return color::CYAN;
+            case LogLevel::SUCCESS: return color::GREEN;
+            case LogLevel::DEBUG:   return color::GRAY;
+            case LogLevel::TRACE:   return color::DIM;
+            default:                return color::RESET;
+        }
+    }
+};
+
+#define UDO_LOG(level, msg) udo::test::Logger::instance().log(udo::test::LogLevel::level, msg, 2)
+#define UDO_INFO(msg) UDO_LOG(INFO, msg)
+#define UDO_DEBUG(msg) UDO_LOG(DEBUG, msg)
 
 // ============================================================================
 // Test Result
@@ -94,18 +186,26 @@ public:
 
     [[nodiscard]] const std::string& get_name() const { return suite_name; }
 
-    std::vector<TestResult> run(bool verbose = false) {
+    std::vector<TestResult> run(const TestOptions& opts = {}) {
         std::vector<TestResult> results;
+        Logger::instance().suite(suite_name);
 
-        if (!verbose) {
-            std::cout << color::CYAN << "Running suite: " << color::BOLD
-                      << suite_name << color::RESET << "\n";
+        if (setup_fn) {
+            try {
+                setup_fn();
+            } catch (const std::exception& e) {
+                Logger::instance().log(LogLevel::ERROR, "Setup failed: " + std::string(e.what()), 1);
+                return results;
+            }
         }
-
-        if (setup_fn) setup_fn();
 
         for (size_t i = 0; i < tests.size(); ++i) {
             const auto& [name, test_fn] = tests[i];
+
+            // Filter
+            if (!opts.test_filter.empty() && name.find(opts.test_filter) == std::string::npos) {
+                continue;
+            }
 
             if (before_each_fn) before_each_fn();
 
@@ -135,16 +235,14 @@ public:
             if (after_each_fn) after_each_fn();
 
             results.push_back(result);
+            Logger::instance().test(name, result.passed, result.duration_ms, 1);
 
-            if (verbose) {
-                print_test_result(result, i + 1);
-            } else {
-                std::cout << (result.passed ? color::GREEN : color::RED)
-                          << (result.passed ? "." : "F") << color::RESET << std::flush;
+            if (!result.passed) {
+                print_failure_details(result);
+                if (opts.stop_on_fail) break;
             }
         }
 
-        if (!verbose) std::cout << "\n";
         if (teardown_fn) teardown_fn();
 
         return results;
@@ -158,33 +256,18 @@ private:
     std::function<void()> before_each_fn;
     std::function<void()> after_each_fn;
 
-    void print_test_result(const TestResult& result, int test_num) {
-        std::cout << std::left << std::setw(4) << test_num << " ";
-
-        if (result.passed) {
-            std::cout << color::GREEN << "✓ PASS" << color::RESET;
-        } else {
-            std::cout << color::RED << "✗ FAIL" << color::RESET;
+    void print_failure_details(const TestResult& result) {
+        Logger::instance().log(LogLevel::ERROR, result.message, 2);
+        if (!result.file.empty()) {
+            std::stringstream ss;
+            ss << "at " << result.file << ":" << result.line;
+            Logger::instance().log(LogLevel::TRACE, ss.str(), 2);
         }
-
-        std::cout << " | " << std::setw(50) << result.name
-                  << " | " << color::DIM << std::fixed << std::setprecision(2)
-                  << result.duration_ms << "ms" << color::RESET << "\n";
-
-        if (!result.passed) {
-            std::cout << "     " << color::RED << result.message << color::RESET << "\n";
-            if (!result.file.empty()) {
-                std::cout << "     " << color::DIM << "at " << result.file
-                          << ":" << result.line << color::RESET << "\n";
-            }
-            if (result.expected.has_value()) {
-                std::cout << "     Expected: " << color::GREEN
-                          << result.expected.value() << color::RESET << "\n";
-            }
-            if (result.actual.has_value()) {
-                std::cout << "     Actual:   " << color::RED
-                          << result.actual.value() << color::RESET << "\n";
-            }
+        if (result.expected.has_value()) {
+            Logger::instance().log(LogLevel::WARN, "Expected: " + result.expected.value(), 2);
+        }
+        if (result.actual.has_value()) {
+            Logger::instance().log(LogLevel::WARN, "Actual:   " + result.actual.value(), 2);
         }
     }
 };
@@ -216,27 +299,35 @@ public:
         std::cout << "\n";
     }
 
-    int run_all(bool verbose = false, bool stop_on_fail = false) {
-        std::cout << "\n" << color::YELLOW << color::BOLD
-                  << "╔═══════════════════════════════════════════════════════════════════════════╗\n"
+    int run_all(const TestOptions& opts = {}) {
+        Logger::instance().set_options(opts);
+
+        if (opts.use_color) std::cout << color::YELLOW << color::BOLD;
+        std::cout << "╔═══════════════════════════════════════════════════════════════════════════╗\n"
                   << "║                         UDO TEST FRAMEWORK                                ║\n"
-                  << "╚═══════════════════════════════════════════════════════════════════════════╝"
-                  << color::RESET << "\n\n";
+                  << "╚═══════════════════════════════════════════════════════════════════════════╝";
+        if (opts.use_color) std::cout << color::RESET;
+        std::cout << "\n\n";
 
         int total_passed = 0;
         int total_failed = 0;
         double total_time = 0.0;
 
         for (auto& suite : suites) {
-            auto results = suite->run(verbose);
+            // Suite Filter
+            if (!opts.suite_filter.empty() && suite->get_name().find(opts.suite_filter) == std::string::npos) {
+                continue;
+            }
+
+            auto results = suite->run(opts);
 
             for (const auto& result : results) {
                 if (result.passed) {
                     total_passed++;
                 } else {
                     total_failed++;
-                    if (stop_on_fail) {
-                        print_summary(total_passed, total_failed, total_time);
+                    if (opts.stop_on_fail) {
+                        print_summary(total_passed, total_failed, total_time, opts);
                         return 1;
                     }
                 }
@@ -244,38 +335,47 @@ public:
             }
         }
 
-        print_summary(total_passed, total_failed, total_time);
+        print_summary(total_passed, total_failed, total_time, opts);
         return total_failed > 0 ? 1 : 0;
+    }
+
+    // Overload for backward compatibility
+    int run_all(bool verbose) {
+        TestOptions opts;
+        opts.verbose = verbose;
+        opts.log_level = verbose ? LogLevel::DEBUG : LogLevel::INFO;
+        return run_all(opts);
     }
 
 private:
     std::vector<std::shared_ptr<TestSuite>> suites;
 
-    void print_summary(int passed, int failed, double total_time) {
-        std::cout << "\n" << color::BOLD
-                  << "╔═══════════════════════════════════════════════════════════════════════════╗\n"
-                  << "║ RESULTS: ";
+    void print_summary(int passed, int failed, double total_time, const TestOptions& opts) {
+        const int box_width = 75;
+        auto horizontal_line = []() {
+            for (int i = 0; i < 75; ++i) std::cout << "═";
+        };
+        
+        std::cout << "\n";
+        if (opts.use_color) std::cout << color::BOLD;
+        std::cout << "╔"; horizontal_line(); std::cout << "╗\n";
 
-        std::cout << color::GREEN << passed << " PASSED" << color::RESET << color::BOLD << ", ";
+        // Results line
+        std::stringstream ss_res;
+        ss_res << "RESULTS: " << passed << " PASSED, " << failed << " FAILED (Total: " << (passed + failed) << ")";
+        std::string res_str = ss_res.str();
+        
+        std::cout << "║ " << res_str << std::string(box_width - res_str.length() - 1, ' ') << "║\n";
 
-        if (failed > 0) {
-            std::cout << color::RED << failed << " FAILED" << color::RESET << color::BOLD;
-        } else {
-            std::cout << color::GREEN << "0 FAILED" << color::RESET << color::BOLD;
-        }
+        // Time line
+        std::stringstream ss_time;
+        ss_time << "Time: " << std::fixed << std::setprecision(2) << total_time << "ms";
+        std::string time_str = ss_time.str();
+        std::cout << "║ " << time_str << std::string(box_width - time_str.length() - 1, ' ') << "║\n";
 
-        std::cout << " (Total: " << (passed + failed) << ")";
-
-        int spaces = 73 - 19 - std::to_string(passed).length() - std::to_string(failed).length()
-                     - std::to_string(passed + failed).length();
-        std::cout << std::string(spaces, ' ') << "║\n";
-
-        std::cout << "║ Time: " << std::fixed << std::setprecision(2) << total_time << "ms";
-        spaces = 73 - 8 - std::to_string((int)total_time).length();
-        std::cout << std::string(spaces, ' ') << "║\n";
-
-        std::cout << "╚═══════════════════════════════════════════════════════════════════════════╝"
-                  << color::RESET << "\n\n";
+        std::cout << "╚"; horizontal_line(); std::cout << "╝\n";
+        if (opts.use_color) std::cout << color::RESET;
+        std::cout << "\n";
     }
 };
 
@@ -472,6 +572,29 @@ private:
         } catch (...) { \
             throw udo::test::AssertionFailure( \
                 "Expected no exception to be thrown", __FILE__, __LINE__); \
+        } \
+    } while(0)
+
+#define UDO_ASSERT_IN_RANGE(val, min, max) \
+    do { \
+        auto v = (val); \
+        auto low = (min); \
+        auto high = (max); \
+        if (v < low || v > high) { \
+            std::ostringstream oss; \
+            oss << "Value " << v << " out of range [" << low << ", " << high << "]"; \
+            throw udo::test::AssertionFailure(oss.str(), __FILE__, __LINE__); \
+        } \
+    } while(0)
+
+#define UDO_ASSERT_MATCH(str, pattern) \
+    do { \
+        std::string s = (str); \
+        std::regex re(pattern); \
+        if (!std::regex_search(s, re)) { \
+            std::ostringstream oss; \
+            oss << "String \"" << s << "\" does not match pattern \"" << pattern << "\""; \
+            throw udo::test::AssertionFailure(oss.str(), __FILE__, __LINE__); \
         } \
     } while(0)
 

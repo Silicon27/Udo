@@ -71,8 +71,16 @@ Compiler_Config parse(int argc, char *argv[]) {
 
     argparse::ArgumentParser program(CUDO_NAME,
                                      CUDO_VERSION,
-                                     argparse::default_arguments::all,
-                                     /*exit_on_error=*/false);
+                                     argparse::default_arguments::help,
+                                     /*exit_on_default_arguments=*/true);
+
+    program.add_argument("-V", "--version")
+        .help("prints version information and exits")
+        .action([&](const auto & /*unused*/) {
+            std::cout << CUDO_VERSION << std::endl;
+            std::exit(0);
+        })
+        .nargs(0);
 
     // Positional: multiple input files
     program.add_argument("inputs")

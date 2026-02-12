@@ -15,25 +15,37 @@
 int main(int argc, char* argv[]) {
     using namespace udo::test;
 
-    TestRunner runner;
+    TestRunner& runner = TestRunner::instance();
+    TestOptions opts;
 
-    bool verbose = false;
     bool list_only = false;
-    std::string filter;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "-v" || arg == "--verbose") {
-            verbose = true;
+            opts.verbose = true;
+            opts.log_level = LogLevel::DEBUG;
         } else if (arg == "-l" || arg == "--list") {
             list_only = true;
+        } else if (arg == "--stop-on-fail") {
+            opts.stop_on_fail = true;
+        } else if (arg == "--no-color") {
+            opts.use_color = false;
+        } else if (arg.starts_with("--filter-suite=")) {
+            opts.suite_filter = arg.substr(15);
+        } else if (arg.starts_with("--filter-test=")) {
+            opts.test_filter = arg.substr(14);
         } else if (arg == "-h" || arg == "--help") {
             std::cout << "UDO Test Suite\n"
                       << "Usage: " << argv[0] << " [options]\n"
                       << "Options:\n"
-                      << "  -v, --verbose     Verbose output\n"
-                      << "  -l, --list        List all tests without running\n"
-                      << "  -h, --help        Show this help\n";
+                      << "  -v, --verbose               Verbose output\n"
+                      << "  -l, --list                  List all tests without running\n"
+                      << "  --stop-on-fail              Stop execution after first failure\n"
+                      << "  --no-color                  Disable colored output\n"
+                      << "  --filter-suite=PATTERN      Only run suites matching PATTERN\n"
+                      << "  --filter-test=PATTERN       Only run tests matching PATTERN\n"
+                      << "  -h, --help                  Show this help\n";
             return 0;
         }
     }
@@ -50,5 +62,5 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    return runner.run_all(verbose);
+    return runner.run_all(opts);
 }
