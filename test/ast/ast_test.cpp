@@ -56,6 +56,76 @@ void register_ast_tests(TestRunner& runner) {
         UDO_ASSERT_EQ(reinterpret_cast<std::uintptr_t>(p2) % 8, 0);
     });
 
+    context_suite->add_test("partially_filled_slab_usage", [] {
+        ASTContext::BumpPtrAllocator allocator(64);
+
+        // partially fill a slab, this enables the allocator to push the semi used slab onto the partially filled vector
+        void* p1 = allocator.allocate(4, 4);
+
+        UDO_ASSERT_NOT_NULL(p1);
+        UDO_ASSERT_EQ(allocator.num_slabs(), 1);
+
+        // now we mandate the allocator create a new slab
+        void* p2 = allocator.allocate(60, 8);
+
+        UDO_ASSERT_NOT_NULL(p2);
+        UDO_ASSERT_EQ(allocator.num_slabs(), 2);
+
+        // and now we try to allocate some storage that would fit into the partially filled slab
+        void* p3 = allocator.allocate(4, 4, 0,true);
+
+        UDO_ASSERT_NOT_NULL(p3);
+        UDO_ASSERT_EQ(allocator.num_slabs(), 2);
+    });
+
+    context_suite->add_test("reset_slab_reorders_partially_used", [] {
+        ASTContext::BumpPtrAllocator allocator(64);
+
+        allocator.allocate(40); // Slab 0, 24 left.
+        allocator.allocate(40); // Slab 1 (current), 24 left. Slab 0 is in partially_used.
+
+        UDO_ASSERT_EQ(allocator.num_slabs(), 2);
+        UDO_ASSERT_EQ(allocator.num_partially_used_slabs(), 1);
+
+        // Reset Slab 0. It's already there, so it should be moved to front (it's already the only one).
+        allocator.reset_slab(0);
+        UDO_ASSERT_EQ(allocator.num_partially_used_slabs(), 1);
+
+        // Allocate 40 again. Slab 1 is current, but Slab 0 is in partially_used and it's tried first.
+        // Slab 0 now has 64 available.
+        void* p = allocator.allocate(40);
+        UDO_ASSERT_NOT_NULL(p);
+        UDO_ASSERT_EQ(allocator.num_slabs(), 2);
+
+        // To verify it used Slab 0:
+        // Slab 0 should now have 40 used.
+        // Slab 1 should still have 40 used.
+        // Total used should be 80.
+        UDO_ASSERT_EQ(allocator.num_allocated_bytes_used(), 80);
+
+        // Now trigger Slab 2
+        allocator.allocate(40); // Current is Slab 1, but it only has 24 left.
+        // Wait, if it tries partially_used first, it tries Slab 0.
+        // Slab 0 has 64 - 40 = 24 left.
+        // So it tries Slab 0 (24 left) -> fails.
+        // Then it tries Slab 1 (current, 24 left) -> fails.
+        // Then it creates Slab 2.
+        UDO_ASSERT_EQ(allocator.num_slabs(), 3);
+        // Slab 1 should have been added to partially_used.
+        // partially_used order: [1, 0]
+        UDO_ASSERT_EQ(allocator.num_partially_used_slabs(), 2);
+
+        // Now reset Slab 0. It should be moved to front: [0, 1]
+        allocator.reset_slab(0);
+        UDO_ASSERT_EQ(allocator.num_partially_used_slabs(), 2);
+
+        // Allocation should now prioritize Slab 0.
+        // Slab 0 is now empty (64 available).
+        void* p2 = allocator.allocate(60);
+        UDO_ASSERT_NOT_NULL(p2);
+        UDO_ASSERT_EQ(allocator.num_slabs(), 3); // No new slab needed.
+    });
+
     runner.add_suite(std::move(context_suite));
 
     // ========================================================================

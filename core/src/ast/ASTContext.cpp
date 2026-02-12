@@ -34,14 +34,9 @@ ASTContext::Slab& ASTContext::Slab::operator=(Slab&& other) noexcept {
 }
 
 bool ASTContext::Slab::is_full(const std::size_t size, const std::size_t align) const {
-    std::size_t remaining = capacity - (current - buffer);
-    if (remaining < size) return true;
-
-    // Calculate padding needed to align 'current'
-    auto curr_addr = reinterpret_cast<std::uintptr_t>(current);
-    std::size_t padding = (align - (curr_addr % align)) % align;
-
-    return remaining < (size + padding);
+    const auto curr_addr = reinterpret_cast<std::uintptr_t>(current);
+    const std::size_t padding = (align - (curr_addr % align)) % align;
+    return (capacity - (current - buffer)) < (size + padding);
 }
 
 std::size_t ASTContext::Slab::get_remaining_capacity() const {
@@ -50,11 +45,12 @@ std::size_t ASTContext::Slab::get_remaining_capacity() const {
 
 void* ASTContext::Slab::allocate(const std::size_t size, const std::size_t align) {
     std::size_t space_left = capacity - (current - buffer);
+    void* ptr = current;
 
-    void* alignPtr = std::align(align, size, reinterpret_cast<void*&>(current), space_left);
-    if (!alignPtr) return nullptr; // allocation failed
+    void* alignPtr = std::align(align, size, ptr, space_left);
+    if (!alignPtr) return nullptr;
 
-    current += size;
+    current = static_cast<char*>(alignPtr) + size;
     return alignPtr;
 }
 

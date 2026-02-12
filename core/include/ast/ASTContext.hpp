@@ -6,7 +6,9 @@
 #define UDO_AST_CONTEXT_HPP
 
 #include <vector>
+#include <deque>
 #include <memory>
+#include <algorithm>
 
 class ASTContext {
     struct Slab {
@@ -32,9 +34,9 @@ class ASTContext {
 public:
     template <typename VecAlloc = std::allocator<Slab>>
     class BumpPtrAllocator {
-        std::vector<Slab, VecAlloc> slabs;
-        std::vector<Slab*> partially_used_slabs;
-        int current_slab_idx{};
+        std::deque<Slab, VecAlloc> slabs;
+        std::vector<std::size_t> partially_used_slabs;
+        std::size_t current_slab_idx{};
         std::size_t slab_size;
 
     public:
@@ -50,11 +52,26 @@ public:
         ///
         /// @returns pointer to the allocated memory chunk, or nullptr if allocation fails (e.g. if even a new slab cannot accommodate the requested size - fix: increase size_of_new_slab to allocate a new slab of a custom size)
         void* allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t),
-                       int size_of_new_slab = 0, bool reuse_free_slab = false);
+                       std::size_t size_of_new_slab = 0, bool reuse_free_slab = true);
+
+        /// @brief Acts as a reset for the allocator, but it does not deallocate any memory.
+        /// Instead, it simply resets the current pointer of each slab back to the beginning,
+        /// effectively marking all previously allocated memory as free and available for reuse.
+        /// The slab is thereafter reassigned to the partially_used_slabs.
+        ///
+        /// @param idx index of the slab to reset
+        void reset_slab(std::size_t idx);
 
         [[nodiscard]] int current_slab_index() const { return current_slab_idx; }
         [[nodiscard]] std::size_t num_slabs() const { return slabs.size(); }
-        [[nodiscard]] std::size_t num_allocated_bytes() const { return slabs.back().current - slabs.front().buffer; }
+        [[nodiscard]] std::size_t num_partially_used_slabs() const { return partially_used_slabs.size(); }\
+
+        /// returns the total number of bytes allocated by the allocator, including both used and unused bytes.
+        [[nodiscard]] std::size_t num_allocated_bytes() const;
+
+        /// returns the number of bytes allocated by the allocator that is in use, differs from num_allocated_bytes() in that it does not count the bytes in the slabs that are allocated but not used.
+        [[nodiscard]] std::size_t num_allocated_bytes_used() const;
+
         [[nodiscard]] std::size_t slab_sizes() const { return slab_size; }
     };
 };
@@ -69,34 +86,70 @@ ASTContext::BumpPtrAllocator<VecAlloc>::BumpPtrAllocator(const std::size_t initi
 
 template <typename VecAlloc>
 void* ASTContext::BumpPtrAllocator<VecAlloc>::allocate(const std::size_t size, const std::size_t alignment,
-                                                      const int size_of_new_slab, const bool reuse_free_slab) {
-    if (reuse_free_slab && partially_used_slabs.size() > 0) {
-        for (const auto it : partially_used_slabs) {
-            if (!it->is_full(size, alignment)) {
-                const auto result = it->allocate(size, alignment);
-                if (it->get_remaining_capacity() == 0) {
-                    std::erase(partially_used_slabs, it);
+                                                      const std::size_t size_of_new_slab, const bool reuse_free_slab) {
+    if (reuse_free_slab && !partially_used_slabs.empty()) {
+        for (auto it = partially_used_slabs.begin(); it != partially_used_slabs.end(); ) {
+            Slab& slab = slabs[*it];
+            if (void* result = slab.allocate(size, alignment)) {
+                if (slab.get_remaining_capacity() == 0) {
+                    it = partially_used_slabs.erase(it);
                 }
                 return result;
             }
+            ++it;
         }
     }
 
-    if (slabs[current_slab_idx].is_full(size, alignment)) {
-        Slab& active_slab = slabs[current_slab_idx];
-        std::size_t new_slab_size = size_of_new_slab > 0 ? size_of_new_slab : slab_size;
-        if (new_slab_size <= size) {
-            return nullptr;
-        }
-
-        if (active_slab.get_remaining_capacity() > 0) {
-            partially_used_slabs.push_back(&active_slab);
-        }
-
-        slabs.emplace_back(new_slab_size);
-        current_slab_idx++;
+    // Try to allocate from the current slab
+    if (void* result = slabs[current_slab_idx].allocate(size, alignment)) {
+        return result;
     }
+
+    // Current slab is full, move it to partially_used_slabs if it has some space left
+    if (slabs[current_slab_idx].get_remaining_capacity() > 0) {
+        partially_used_slabs.push_back(current_slab_idx);
+    }
+
+    // Allocation logic for a new slab
+    const std::size_t new_slab_size = size_of_new_slab > 0 ? size_of_new_slab : slab_size;
+    if (new_slab_size <= size) {
+        return nullptr;
+    }
+
+    slabs.emplace_back(new_slab_size);
+    current_slab_idx = slabs.size() - 1;
+
     return slabs[current_slab_idx].allocate(size, alignment);
+}
+
+template<typename VecAlloc>
+void ASTContext::BumpPtrAllocator<VecAlloc>::reset_slab(std::size_t idx) {
+    Slab& slab = slabs[idx];
+    slab.reset();
+
+    auto it = std::ranges::find(partially_used_slabs, idx);
+    if (it != partially_used_slabs.end()) {
+        partially_used_slabs.erase(it);
+    }
+    partially_used_slabs.insert(partially_used_slabs.begin(), idx);
+}
+
+template<typename VecAlloc>
+std::size_t ASTContext::BumpPtrAllocator<VecAlloc>::num_allocated_bytes() const {
+    std::size_t total = 0;
+    for (const auto& slab : slabs) {
+        total += slab.capacity;
+    }
+    return total;
+}
+
+template<typename VecAlloc>
+std::size_t ASTContext::BumpPtrAllocator<VecAlloc>::num_allocated_bytes_used() const {
+    std::size_t total = 0;
+    for (const auto& slab : slabs) {
+        total += slab.current - slab.buffer;
+    }
+    return total;
 }
 
 #endif //UDO_AST_CONTEXT_HPP
