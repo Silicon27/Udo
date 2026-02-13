@@ -10,6 +10,8 @@
 #include <error/error.hpp>
 #include <cli/compiler_config.hpp>
 
+#include <ast/ASTContext.hpp>
+
 namespace udo::parse {
     using namespace udo::compiler_config;
 
@@ -21,7 +23,6 @@ namespace udo::parse {
     struct ParserSnapshot {
         int capped_pos;
         const std::vector<Token>& tokens;
-        const std::shared_ptr<ASTNode>& current_node;
     };
 
     class Parser {
@@ -36,7 +37,7 @@ namespace udo::parse {
 
     private:
         diag::DiagnosticsEngine& diagnostics_;
-        std::shared_ptr<ProgramNode> program;
+        ASTContext& context_;
         std::vector<Token> tokens;
         Flags flags;
         Parser_Context context;
@@ -72,7 +73,7 @@ namespace udo::parse {
         // expression parsers
 
 
-        explicit Parser(const std::vector<Token> &tokens, Flags flag, std::shared_ptr<ProgramNode> &program, diag::DiagnosticsEngine& diag);
+        explicit Parser(const std::vector<Token> &tokens, Flags flag, ASTContext &context, diag::DiagnosticsEngine& diag);
         ~Parser() = default;
     };
 }

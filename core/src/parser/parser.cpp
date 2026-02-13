@@ -46,8 +46,8 @@ namespace udo::parse {
 
     }
 
-    Parser::Parser(const std::vector<Token> &tokens, Flags flag, std::shared_ptr<ProgramNode> &program, diag::DiagnosticsEngine& diag)
-        : diagnostics_(diag), program(program), tokens(tokens), flags(std::move(flag)), context(Parser_Context::Top_Level) {
+    Parser::Parser(const std::vector<Token> &tokens, Flags flag, ASTContext &context, diag::DiagnosticsEngine& diag)
+        : diagnostics_(diag), context_(context), tokens(tokens), flags(std::move(flag)), context(Parser_Context::Top_Level) {
     }
 
 

@@ -11,7 +11,7 @@
 #include "../error/error.hpp"
 #include "../preprocessor/preprocessor.hpp"
 #include "../lexer/lexer.hpp"
-#include "../ast/ast.hpp"
+#include "../ast/ASTContext.hpp"
 
 // Forward declaration to avoid circular dependency
 namespace udo::parse {
@@ -74,7 +74,7 @@ namespace udo::compiler_config {
     struct Parser_Invoke {
         struct Param {
             diag::DiagnosticsEngine& diag;
-            std::shared_ptr<ast::ProgramNode> program;
+            ASTContext& context;
             std::vector<Token> tokens;
             Flags flags;
         };
@@ -88,7 +88,7 @@ namespace udo::compiler_config {
 
     struct Sema_Invoke {
         struct Param {
-            std::shared_ptr<ast::ProgramNode> program;
+            ASTContext& context;
             int allowed_errors;
             diag::DiagnosticsEngine& diag;
         };
@@ -123,6 +123,7 @@ namespace udo::compiler_config {
 class Compiler_Invocation {
     udo::compiler_config::Compiler_Config config;
     udo::diag::DiagnosticsEngine& diag_;
+    udo::ast::ASTContext context_;
 
 public:
     explicit Compiler_Invocation(const udo::compiler_config::Compiler_Config& config,
@@ -134,6 +135,9 @@ public:
 
     /// Get the diagnostics engine
     udo::diag::DiagnosticsEngine& getDiagnostics() { return diag_; }
+
+    /// Get the AST context
+    udo::ast::ASTContext& getASTContext() { return context_; }
 };
 
 #endif //COMPILER_INVOCATION_HPP

@@ -388,7 +388,7 @@ Parser_Invoke::Parser_Invoke(const Param& param) : param(param) {}
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 std::unique_ptr<parse::Parser> Parser_Invoke::invoke() const {
     // Minimal construction; real usage left to you.
-    return std::make_unique<parse::Parser>(param.tokens, param.flags, param.program, param.diag);
+    return std::make_unique<parse::Parser>(param.tokens, param.flags, param.context, param.diag);
 }
 
 Sema_Invoke::Sema_Invoke(Param param) : param(param) {}
@@ -424,7 +424,7 @@ void Linker_Invoke::invoke() const {
 
 Compiler_Invocation::Compiler_Invocation(const Compiler_Config& config,
                                          udo::diag::DiagnosticsEngine& diag)
-    : config(std::move(config)), diag_(diag) {}
+    : config(std::move(config)), diag_(diag), context_() {}
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 int Compiler_Invocation::run() {

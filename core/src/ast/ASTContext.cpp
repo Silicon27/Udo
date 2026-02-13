@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <algorithm>
 
+namespace udo::ast {
+
 ASTContext::Slab::Slab(const std::size_t size) {
     buffer = new char[size];
     current = buffer;
@@ -57,3 +59,10 @@ void* ASTContext::Slab::allocate(const std::size_t size, const std::size_t align
 void ASTContext::Slab::reset() {
     current = buffer; // overwrite all data
 }
+
+ASTContext::ASTContext(std::size_t initial_slab_size)
+    : allocator(initial_slab_size) {
+    tu_decl = Create<TranslationUnitDecl>();
+}
+
+} // namespace udo::ast

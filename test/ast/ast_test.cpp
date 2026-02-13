@@ -31,6 +31,7 @@ void register_ast_tests(TestRunner& runner) {
     auto context_suite = std::make_unique<TestSuite>("AST::Context");
 
     context_suite->add_test("alignment_bug_reproduction", []() {
+        using namespace udo::ast;
         // We want to verify that is_full(size, alignment) correctly accounts for padding.
 
         ASTContext::BumpPtrAllocator allocator(64);
@@ -57,6 +58,7 @@ void register_ast_tests(TestRunner& runner) {
     });
 
     context_suite->add_test("partially_filled_slab_usage", [] {
+        using namespace udo::ast;
         ASTContext::BumpPtrAllocator allocator(64);
 
         // partially fill a slab, this enables the allocator to push the semi used slab onto the partially filled vector
@@ -79,6 +81,7 @@ void register_ast_tests(TestRunner& runner) {
     });
 
     context_suite->add_test("reset_slab_reorders_partially_used", [] {
+        using namespace udo::ast;
         ASTContext::BumpPtrAllocator allocator(64);
 
         allocator.allocate(40); // Slab 0, 24 left.

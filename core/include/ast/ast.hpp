@@ -8,50 +8,80 @@
 #include <support/source_manager.hpp>
 
 namespace udo::ast {
-    class Stmt;
     class Decl;
-}
+    class Stmt;
+    class Expr;
+    class ASTContext;
 
-namespace udo::ast {
-    enum class StmtKind {
-        Expression,
-        If,
-        While,
-        For,
-        Return,
-        Block,
-    };
-
-    class ASTNode {
+    /// Base class for all declarations.
+    class Decl {
     public:
-        virtual ~ASTNode() = default;
-    };
+        enum class Kind : std::uint8_t {
+            TranslationUnit,
+            Variable,
+            Function,
+            Struct,
+            Enum,
+            Module,
+        };
 
-    class ProgramNode : public ASTNode {
+    private:
+        Kind declKind;
+
+    protected:
+        explicit Decl(const Kind K) : declKind(K) {}
+
     public:
-        std::vector<std::shared_ptr<ASTNode>> declarations;
-    };
+        ~Decl() = default;
+        [[nodiscard]] Kind getKind() const { return declKind; }
 
-    class Stmt : public ASTNode {
-    public:
-        StmtKind kind;
-    };
-
-    enum class DeclKind {
-        Variable,
-        Function,
-        Struct,
-        Enum,
-        Module,
-    };
-
-    class Decl : public ASTNode {
-    public:
-        DeclKind kind;
+        Decl* next = nullptr;
 
         udo::Source_Range source_range;
     };
-}
 
+    /// The top-level declaration that represents the entire translation unit.
+    class TranslationUnitDecl : public Decl {
+        Decl* first_decl = nullptr;
+        Decl* last_decl = nullptr;
+    public:
+        TranslationUnitDecl()
+            : Decl(Kind::Module) {}
+
+        void addDecl(Decl* decl);
+
+        [[nodiscard]] Decl* getFirstDecl() const { return first_decl; }
+        [[nodiscard]] Decl* getLastDecl() const { return last_decl; }
+    };
+
+    /// Base class for all statements.
+    class Stmt {
+    public:
+        enum class Kind : std::uint8_t {
+            CompoundStmt,
+            IfStmt,
+            WhileStmt,
+            ForStmt,
+            ReturnStmt,
+            ExprStmt,
+        };
+
+    private:
+        Kind stmtKind;
+
+    protected:
+        explicit Stmt(const Kind K) : stmtKind(K) {}
+
+    public:
+        ~Stmt() = default;
+        [[nodiscard]] Kind getKind() const { return stmtKind; }
+    };
+
+    /// Base class for all expressions, which are also statements.
+    class Expr : public Stmt {
+    protected:
+        explicit Expr(const Kind K) : Stmt(K) {}
+    };
+}
 
 #endif //AST_HPP
