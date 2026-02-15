@@ -6,15 +6,41 @@
 #define AST_HPP
 
 #include <support/source_manager.hpp>
+#include <type_traits>
 
 namespace udo::ast {
+    class Type;
+    class QualType;
     class Decl;
     class Stmt;
     class Expr;
     class ASTContext;
 
+    class Type {
+    public:
+
+    };
+    static_assert(std::is_trivially_destructible_v<Type>);
+
+    /// A base class for any declaration that can contain other declarations.
+    class DeclContext {
+        Decl* first_decl = nullptr;
+        Decl* last_decl = nullptr;
+
+    protected:
+        DeclContext() = default;
+
+    public:
+        void addDecl(Decl* decl);
+
+        [[nodiscard]] Decl* getFirstDecl() const { return first_decl; }
+        [[nodiscard]] Decl* getLastDecl() const { return last_decl; }
+    };
+    static_assert(std::is_trivially_destructible_v<DeclContext>);
+
     /// Base class for all declarations.
     class Decl {
+        friend class ASTContext;
     public:
         enum class Kind : std::uint8_t {
             TranslationUnit,
@@ -39,23 +65,19 @@ namespace udo::ast {
 
         udo::Source_Range source_range;
     };
+    static_assert(std::is_trivially_destructible_v<Decl>);
 
     /// The top-level declaration that represents the entire translation unit.
-    class TranslationUnitDecl : public Decl {
-        Decl* first_decl = nullptr;
-        Decl* last_decl = nullptr;
+    class TranslationUnitDecl : public Decl, public DeclContext {
     public:
         TranslationUnitDecl()
-            : Decl(Kind::Module) {}
-
-        void addDecl(Decl* decl);
-
-        [[nodiscard]] Decl* getFirstDecl() const { return first_decl; }
-        [[nodiscard]] Decl* getLastDecl() const { return last_decl; }
+            : Decl(Kind::TranslationUnit) {}
     };
+    static_assert(std::is_trivially_destructible_v<TranslationUnitDecl>);
 
     /// Base class for all statements.
     class Stmt {
+        friend class ASTContext;
     public:
         enum class Kind : std::uint8_t {
             CompoundStmt,
@@ -76,12 +98,39 @@ namespace udo::ast {
         ~Stmt() = default;
         [[nodiscard]] Kind getKind() const { return stmtKind; }
     };
+    static_assert(std::is_trivially_destructible_v<Stmt>);
+
+    /// For statement chaining
+    class CompoundStmt final : public Stmt {
+        std::uint32_t num_stmts = 0;
+
+        explicit CompoundStmt(std::uint32_t num_stmts)
+            : Stmt(Kind::CompoundStmt), num_stmts(num_stmts) {}
+
+    public:
+        static CompoundStmt* Create(ASTContext& C, Stmt** stmts, std::uint32_t num_stmts);
+
+        using iterator = Stmt**;
+        using const_iterator = Stmt* const*;
+
+        [[nodiscard]] std::uint32_t size() const { return num_stmts; }
+        [[nodiscard]] Stmt** get_stmts() { return reinterpret_cast<Stmt**>(this + 1); }
+        [[nodiscard]] Stmt* const* get_stmts() const { return reinterpret_cast<Stmt* const*>(this + 1); }
+
+        [[nodiscard]] iterator begin() { return get_stmts(); }
+        [[nodiscard]] iterator end() { return get_stmts() + num_stmts; }
+
+        [[nodiscard]] const_iterator begin() const { return get_stmts(); }
+        [[nodiscard]] const_iterator end() const { return get_stmts() + num_stmts; }
+    };
+    static_assert(std::is_trivially_destructible_v<CompoundStmt>);
 
     /// Base class for all expressions, which are also statements.
     class Expr : public Stmt {
     protected:
         explicit Expr(const Kind K) : Stmt(K) {}
     };
+    static_assert(std::is_trivially_destructible_v<Expr>);
 }
 
 #endif //AST_HPP

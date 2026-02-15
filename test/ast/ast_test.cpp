@@ -22,6 +22,47 @@ void register_ast_tests(TestRunner& runner) {
         UDO_ASSERT_TRUE(true);
     });
 
+    node_suite->add_test("compound_stmt_trailing_objects", []() {
+        using namespace udo::ast;
+        ASTContext context;
+
+        Stmt* s1 = context.Create<Stmt>(Stmt::Kind::ExprStmt);
+        Stmt* s2 = context.Create<Stmt>(Stmt::Kind::ReturnStmt);
+
+        Stmt* stmts[] = {s1, s2};
+        CompoundStmt* cs = CompoundStmt::Create(context, stmts, 2);
+
+        UDO_ASSERT_EQ(cs->size(), 2);
+        UDO_ASSERT_EQ(cs->get_stmts()[0], s1);
+        UDO_ASSERT_EQ(cs->get_stmts()[1], s2);
+
+        // Verify iterators
+        int count = 0;
+        for (Stmt* s : *cs) {
+            if (count == 0) UDO_ASSERT_EQ(s, s1);
+            if (count == 1) UDO_ASSERT_EQ(s, s2);
+            count++;
+        }
+        UDO_ASSERT_EQ(count, 2);
+    });
+
+    node_suite->add_test("decl_context_linked_list", []() {
+        using namespace udo::ast;
+        ASTContext context;
+        TranslationUnitDecl* tu = context.getTranslationUnitDecl();
+
+        Decl* d1 = context.Create<Decl>(Decl::Kind::Variable);
+        Decl* d2 = context.Create<Decl>(Decl::Kind::Function);
+
+        tu->addDecl(d1);
+        tu->addDecl(d2);
+
+        UDO_ASSERT_EQ(tu->getFirstDecl(), d1);
+        UDO_ASSERT_EQ(tu->getLastDecl(), d2);
+        UDO_ASSERT_EQ(d1->next, d2);
+        UDO_ASSERT_NULL(d2->next);
+    });
+
     runner.add_suite(std::move(node_suite));
 
     // ========================================================================

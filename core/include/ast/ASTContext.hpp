@@ -9,6 +9,7 @@
 #include <deque>
 #include <memory>
 #include <algorithm>
+#include <string_view>
 #include <ast/ast.hpp>
 
 namespace udo::ast {
@@ -73,9 +74,18 @@ public:
     }
 
     template <typename T, typename... Args>
+    requires std::is_trivially_destructible_v<T>
     T* Create(Args&&... args) {
         void* storage = Allocate(sizeof(T), alignof(T));
         return new (storage) T(std::forward<Args>(args)...);
+    }
+
+    char* AllocateString(std::string_view str) {
+        if (str.empty()) return nullptr;
+        char* storage = static_cast<char*>(Allocate(str.size() + 1, 1));
+        std::ranges::copy(str, storage);
+        storage[str.size()] = '\0';
+        return storage;
     }
 };
 
