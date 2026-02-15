@@ -9,7 +9,7 @@ namespace udo::ast {
 ASTContext::Slab::Slab(const std::size_t size) {
     // ensure the allocated buffer is of a size that is a
     // multiple of the cache line size for better cache locality
-    buffer = new char[size + CACHE_LINE_SIZE - (size % CACHE_LINE_SIZE)];
+    buffer = new char[(size + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1)];
     current = buffer;
     capacity = size;
 }

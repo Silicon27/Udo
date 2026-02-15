@@ -46,6 +46,15 @@ public:
     public:
         explicit BumpPtrAllocator(std::size_t initial_slab_size = 1024 * 1024);
 
+        /// @brief Allocates storage of at least the size (may allocate more than requested due to cache line alignment) and returns a pointer to it.
+        /// If the current slab does not have enough space, a new slab is allocated.
+        ///
+        /// @param size the size of the memory chunk being allocated
+        /// @param alignment alignment of chunk within the slab
+        /// @param size_of_new_slab size of the new slab to be allocated if the current slab is full, a value <0 means to use member slab_size to construct the new slab
+        /// @param reuse_free_slab if true, the allocator would try to reuse the slab that was cast aside in favor of a new bigger slab when allocating storage more than the available amount in the current slab.
+        ///
+        /// @returns pointer to the allocated memory chunk, or nullptr if allocation fails (e.g. if even a new slab cannot accommodate the requested size - fix: increase size_of_new_slab to allocate a new slab of a custom size)
         void* allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t),
                        std::size_t size_of_new_slab = 0, bool reuse_free_slab = true);
 
