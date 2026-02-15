@@ -11,6 +11,19 @@
 #include <algorithm>
 
 // -----------------------------------------------
+//               OS Specific Constants
+// -----------------------------------------------
+
+// get the cache line size for the current platform, used for ASTContext slab allocation
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+    #define CACHE_LINE_SIZE 64
+#elif defined(__aarch64__)
+    #define CACHE_LINE_SIZE 128
+#else
+    #define CACHE_LINE_SIZE 64 // default to 64 if unknown platform
+#endif
+
+// -----------------------------------------------
 //                  Source_Manager
 // -----------------------------------------------
 

@@ -1,3 +1,4 @@
+#include <support/global_constants.hpp>
 #include <ast/ASTContext.hpp>
 #include <memory>
 #include <cstdint>
@@ -6,7 +7,9 @@
 namespace udo::ast {
 
 ASTContext::Slab::Slab(const std::size_t size) {
-    buffer = new char[size];
+    // ensure the allocated buffer is of a size that is a
+    // multiple of the cache line size for better cache locality
+    buffer = new char[size + CACHE_LINE_SIZE - (size % CACHE_LINE_SIZE)];
     current = buffer;
     capacity = size;
 }
