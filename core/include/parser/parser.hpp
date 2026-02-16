@@ -5,6 +5,8 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 #include <string>
+#include <cstdarg>
+
 #include <ast/ast.hpp>
 #include <lexer/lexer.hpp>
 #include <error/error.hpp>
@@ -15,6 +17,9 @@
 namespace udo::parse {
     using namespace udo::compiler_config;
 
+    struct ParserSnapshot;
+    struct MatchToken;
+    struct MatchOneOfTokenList;
     class Parse;
 
     using namespace udo::ast;
@@ -23,6 +28,18 @@ namespace udo::parse {
     struct ParserSnapshot {
         int capped_pos;
         const std::vector<Token>& tokens;
+    };
+
+    /// bundles useful information regarding the token being matched
+    struct MatchToken {
+        TokenType token;
+        diag::DiagID diag_id;
+    };
+
+    /// represents a list of tokens, any one of which can be matched, along with the corresponding diagnostic IDs for the tokens
+    struct MatchOneOfTokenList {
+        std::vector<MatchToken> tokens;
+        diag::DiagID err_if_none_matched;
     };
 
     class Parser {
@@ -51,7 +68,10 @@ namespace udo::parse {
         /// blind consumation of tokens, no checking, just move the pointer forward and return the token at the original position
         Token consume(int n = 1);
         /// consume the current token and check if it matches the expected type, if it does, return true, otherwise report an error and return false
-        bool consume_and_expect(TokenType exp, const Token& curr);
+        bool consume_and_expect(TokenType exp, const Token& curr, diag::DiagID err);
+        /// alias for comsume_and_expect with current token
+        std::string match(const TokenType exp, diag::DiagID err);
+        std::string match(MatchToken token);
 
         // EOF/token stream check
         bool is_at_end() const;
@@ -68,9 +88,9 @@ namespace udo::parse {
         bool parse_first_top_level_decl();
 
         // statement parsers
-        void parse_variable_decl();
 
         // expression parsers
+        void parse_variable_decl();
 
 
         explicit Parser(const std::vector<Token> &tokens, Flags flag, ASTContext &context, diag::DiagnosticsEngine& diag);
