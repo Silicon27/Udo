@@ -80,6 +80,7 @@ enum : DiagID {
     err_unknown_identifier,
     err_file_not_found,
     err_invalid_character,
+    err_matched_no_tokens,
     warn_unused_variable,
     warn_unused_parameter,
     note_previous_definition,
@@ -102,6 +103,7 @@ enum : DiagID {
 namespace parse {
 enum : DiagID {
     err_expected_expression = DIAG_START_PARSER,
+    err_expected_one_of,
     err_expected_statement,
     err_expected_type,
     err_expected_identifier,

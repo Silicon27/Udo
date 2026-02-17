@@ -102,6 +102,9 @@ namespace udo::lexer {
         DOT,
         DOUBLE_DOT,
         TRIPLE_DOT,
+
+        // misc
+        MATCHED_NO_TOKENS,
     };
 
     // Keyword set for fast lookup

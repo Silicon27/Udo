@@ -6,6 +6,7 @@
 #define PARSER_HPP
 #include <string>
 #include <cstdarg>
+#include <optional>
 
 #include <ast/ast.hpp>
 #include <lexer/lexer.hpp>
@@ -34,14 +35,19 @@ namespace udo::parse {
     struct MatchToken {
         TokenType token;
         diag::DiagID diag_id;
+
+        constexpr MatchToken(TokenType token, diag::DiagID diag_id) : token(token), diag_id(diag_id) {}
     };
 
     /// represents a list of tokens, any one of which can be matched, along with the corresponding diagnostic IDs for the tokens
     struct MatchOneOfTokenList {
         std::vector<MatchToken> tokens;
         diag::DiagID err_if_none_matched;
-    };
 
+        MatchOneOfTokenList(std::initializer_list<MatchToken> tokens, diag::DiagID err_if_none_matched)
+            : tokens(tokens), err_if_none_matched(err_if_none_matched) {}
+    };
+    
     class Parser {
     public:
         enum class Parser_Context {
@@ -72,6 +78,8 @@ namespace udo::parse {
         /// alias for comsume_and_expect with current token
         std::string match(const TokenType exp, diag::DiagID err);
         std::string match(MatchToken token);
+
+        std::pair<std::string, TokenType> match_one_of(const MatchOneOfTokenList& token_list);
 
         // EOF/token stream check
         bool is_at_end() const;
