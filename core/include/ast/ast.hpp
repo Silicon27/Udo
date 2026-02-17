@@ -17,10 +17,48 @@ namespace udo::ast {
     class ASTContext;
 
     class Type {
+        friend class ASTContext;
     public:
+        enum class Kind {
+            Builtin,
+            UserDefined,
+        };
 
+    protected:
+        explicit Type(const Kind K) : typeKind(K) {}
+        [[nodiscard]] Kind getKind() const { return typeKind; }
+    private:
+        Kind typeKind;
     };
     static_assert(std::is_trivially_destructible_v<Type>);
+
+    class BuiltinType : public Type {
+    public:
+        enum class BuiltinKind {
+            I4,
+            I8,
+            I16,
+            I32,
+            I64,
+            I128,
+            F4,
+            F8,
+            F16,
+            F32,
+            F64,
+            F128,
+            Char,
+            Bool,
+        };
+    protected:
+        explicit BuiltinType(const BuiltinKind BK)
+            : Type(Kind::Builtin), builtinKind(BK) {}
+
+        [[nodiscard]] BuiltinKind getBuiltinKind() const { return builtinKind; }
+    private:
+        BuiltinKind builtinKind;
+    };
+    static_assert(std::is_trivially_destructible_v<BuiltinType>);
 
     /// A base class for any declaration that can contain other declarations.
     class DeclContext {
