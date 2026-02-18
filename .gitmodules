@@ -1,3 +1,6 @@
 [submodule "core/include/support/iris"]
 	path = core/include/support/iris
 	url = https://github.com/Silicon27/iris
+[submodule "core/include/support/si"]
+	path = core/include/support/si
+	url = https://github.com/Silicon27/si
