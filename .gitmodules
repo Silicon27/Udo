@@ -1,0 +1,3 @@
+[submodule "core/include/support/iris"]
+	path = core/include/support/iris
+	url = https://github.com/Silicon27/iris
