@@ -75,12 +75,16 @@ namespace udo::parse {
         constexpr auto colon = MatchToken(TokenType::COLON, diag::common::err_expected_token);
         constexpr auto equal = MatchToken(TokenType::EQUAL, diag::common::err_expected_token);
 
+        // pre-build the grammar with custom template-based PEG style parser combinators
+        // helps recovery later on
+
+
         match(initial_let);
         std::string id =
             match(variable_identifier);
         auto colon_or_equal = match_one_of({{colon, equal}, diag::parse::err_expected_one_of});
         if (colon_or_equal.second == TokenType::MATCHED_NO_TOKENS) {
-            // error already reported in match_one_of, recovery
+            // error already reported in match_one_of, attempt recovery now
             return;
         }
         

@@ -26,7 +26,7 @@ namespace udo::parse {
     /// GrammarStream is a utility class that provides a stream-like interface for parsing grammar rules. It allows the parser to consume tokens and check for expected tokens conveniently and improves recovery from parsing errors.
     class GrammarStream {
     public:
-        GrammarStream(Grammar* grammar) : grammar(grammar) {}
+        explicit GrammarStream(Grammar* grammar) : grammar(grammar) {}
     private:
         Grammar* grammar;
     };

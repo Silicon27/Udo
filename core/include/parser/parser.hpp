@@ -44,7 +44,7 @@ namespace udo::parse {
         std::vector<MatchToken> tokens;
         diag::DiagID err_if_none_matched;
 
-        MatchOneOfTokenList(std::initializer_list<MatchToken> tokens, diag::DiagID err_if_none_matched)
+        MatchOneOfTokenList(const std::initializer_list<MatchToken> tokens, const diag::DiagID err_if_none_matched)
             : tokens(tokens), err_if_none_matched(err_if_none_matched) {}
     };
     
