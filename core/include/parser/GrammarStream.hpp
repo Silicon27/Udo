@@ -10,7 +10,7 @@
 
 namespace udo::parse {
     template <lexer::TokenType T> class GrammarRule;
-    class Grammar;
+    struct Grammar;
     class GrammarStream;
 
     template <lexer::TokenType T>
@@ -19,7 +19,7 @@ namespace udo::parse {
     };
 
     /// the underlying object being constructed implicitly via GrammarStream operators
-    class Grammar {
+    struct Grammar {
 
     };
 
@@ -27,6 +27,8 @@ namespace udo::parse {
     class GrammarStream {
     public:
         explicit GrammarStream(Grammar* grammar) : grammar(grammar) {}
+
+
     private:
         Grammar* grammar;
     };

@@ -6,6 +6,8 @@
 
 #include <parser/parser.hpp>
 
+#include <support/iris/src/iris.hpp>
+
 
 namespace udo::parse {
     Token Parser::peek(const int n) const { return tokens[pos + n]; }

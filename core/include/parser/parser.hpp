@@ -12,8 +12,9 @@
 #include <lexer/lexer.hpp>
 #include <error/error.hpp>
 #include <cli/compiler_config.hpp>
-
 #include <ast/ASTContext.hpp>
+
+#include <support/iris/src/iris.hpp>
 
 namespace udo::parse {
     using namespace udo::compiler_config;
