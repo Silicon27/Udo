@@ -1,19 +1,33 @@
 #include <parser/GrammarStream.hpp>
 
 namespace udo::parse {
-    bool GrammarRule::match(const lexer::Token& token) const {
+    GrammarRule::Outcome GrammarRule::match(const lexer::Token& token) const {
         if (type == lexer::TokenType::IDENTIFIER && token.type == type) {
             if (matched_identifier) {
                 *matched_identifier = token.get_lexeme();
-                return true;
+                return Outcome::SUCCESS;
             }
-            return false;
-        }
+            return Outcome::TOKEN_MISMATCH;
+        } else if (pos)
         return token.get_type() == type;
     }
 
     bool Grammar::match(const lexer::Token& token) const {
-        // if any rule fails, we store state; recovery is later invoked by calling Recover::GrammarRecover with this Grammar object
+        if (pos >= rules.size()) {
+            return false;
+        }
+        return rules[pos].match(token);
+    }
 
+    Grammar::State Grammar::match_all(const std::span<const lexer::Token> tokens) {
+        for (const auto& token : tokens) {
+            if (!match(token)) {
+                state.pos = pos;
+                return state;
+            }
+            state.pos++;
+            pos++;
+        }
+        return state;
     }
 }

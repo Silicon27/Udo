@@ -16,6 +16,12 @@ namespace udo::parse {
     class GrammarStream;
 
     struct GrammarRule {
+        enum class Outcome {
+            SUCCESS,
+            OUT_OF_TOKENS,
+            TOKEN_MISMATCH
+        };
+
         explicit GrammarRule(const lexer::TokenType& t) : type(t), matched_identifier(nullptr) {
             // assert that t is not TokenType::IDENTIFIER
             if (t == lexer::TokenType::IDENTIFIER) {
@@ -25,14 +31,15 @@ namespace udo::parse {
 
         explicit GrammarRule(std::string& out) : type(lexer::TokenType::IDENTIFIER), matched_identifier(&out) {}
         
-        explicit GrammarRule(const GrammarRule& c) : type(c.type) {
+        GrammarRule(const GrammarRule& c) : type(c.type) {
             if (c.type == lexer::TokenType::IDENTIFIER) {
                 this->matched_identifier = c.matched_identifier;
             } else {
                 this->matched_identifier = nullptr;
             }
         }
-        explicit GrammarRule(GrammarRule&& c) noexcept : type(std::move(c.type)) {
+
+        GrammarRule(GrammarRule&& c) noexcept : type(std::move(c.type)) {
             if (c.type == lexer::TokenType::IDENTIFIER) {
                 this->matched_identifier = c.matched_identifier;
                 c.matched_identifier = nullptr;
@@ -53,7 +60,7 @@ namespace udo::parse {
             return *this;
         }
 
-        bool match(const lexer::Token& token) const;
+        Outcome match(const lexer::Token& token) const;
 
         [[nodiscard]] const lexer::TokenType& get_type() const { return type; }
 
@@ -67,6 +74,11 @@ namespace udo::parse {
     /// a key feature is its ability to unwind and store past parser states.
     class Grammar {
     public:
+        struct State {
+            int pos;
+            GrammarRule::Outcome outcome;
+        };
+
         Grammar(const std::initializer_list<GrammarRule> rules) : pos(0), rules(rules) {}
 
         Grammar& operator++(int) {
@@ -74,12 +86,20 @@ namespace udo::parse {
             return *this;
         }
 
+        Grammar& operator--(int) {
+            pos--;
+            return *this;
+        }
+
         GrammarRule& operator[](const int i) { return rules[i]; }
 
         bool match(const lexer::Token& token) const;
+
+        State match_all(std::span<const lexer::Token> tokens);
     private:
         int pos;
         std::vector<GrammarRule> rules;
+        State state = {0};
     };
 
     /// GrammarStream is a utility class that provides a stream-like interface for parsing grammar rules. It allows the parser to consume tokens and check for expected tokens conveniently and improves recovery from parsing errors.
