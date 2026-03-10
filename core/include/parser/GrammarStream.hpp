@@ -7,8 +7,9 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <span>
 
-#include <lexer/Lexer.hpp>
+#include <lexer/lexer.hpp>
 
 namespace udo::parse {
     struct GrammarRule;
@@ -111,6 +112,8 @@ namespace udo::parse {
     private:
         Grammar* grammar;
     };
+
+    GrammarStream& ch(std::string& out);
 }
 
 #endif
