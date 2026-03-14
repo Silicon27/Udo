@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
+#include <ranges>
 
 // -----------------------------------------------
 //               OS Specific Constants
@@ -65,46 +66,46 @@ namespace udo::lexer {
         kw_bind,
 
         // Identifiers and Literals
-        IDENTIFIER,
-        INT_LITERAL,
-        FLOAT_LITERAL,
-        NUMBER,
+        identifier,
+        int_literal,
+        float_literal,
+        number,
 
         // Special
-        UNKNOWN,
-        NEWLINE,
+        unknown,
+        newline,
         eof,
-        COMMENT,
+        comment,
 
         // Operators and Punctuation
-        EQUAL,
-        SEMICOLON,
-        DOUBLE_COLON,
-        COMMA,
-        COLON,
-        LBRACE,
-        RBRACE,
-        LBRACKET,
-        RBRACKET,
-        LPAREN,
-        RPAREN,
-        PLUS,
-        MINUS,
-        STAR,
-        SLASH,
-        BANG,
-        BANG_EQUAL,
-        EQUAL_EQUAL,
-        LESS,
-        LESS_EQUAL,
-        GREATER,
-        GREATER_EQUAL,
-        DOT,
-        DOUBLE_DOT,
-        TRIPLE_DOT,
+        equal,
+        semicolon,
+        double_colon,
+        comma,
+        colon,
+        lbrace,
+        rbrace,
+        lbracket,
+        rbracket,
+        lparen,
+        rparen,
+        plus,
+        minus,
+        star,
+        slash,
+        bang,
+        bang_equal,
+        equal_equal,
+        less,
+        less_equal,
+        greater,
+        greater_equal,
+        dot,
+        double_dot,
+        triple_dot,
 
         // misc
-        INVALID_TOKEN,
+        invalid_token,
     };
 
     // Keyword set for fast lookup
@@ -148,38 +149,38 @@ namespace udo::lexer {
         if (str == "mod") return TokenType::kw_mod;
         if (str == "export") return TokenType::kw_export;
         if (str == "bind") return TokenType::kw_bind;
-        return TokenType::IDENTIFIER; // fallback
+        return TokenType::identifier; // fallback
     }
 
     // Get the TokenType for a symbol string
     inline TokenType get_symbol_type(const std::string &str) {
-        if (str == "=") return TokenType::EQUAL;
-        if (str == ";") return TokenType::SEMICOLON;
-        if (str == "::") return TokenType::DOUBLE_COLON;
-        if (str == ",") return TokenType::COMMA;
-        if (str == ":") return TokenType::COLON;
-        if (str == "{") return TokenType::LBRACE;
-        if (str == "}") return TokenType::RBRACE;
-        if (str == "[") return TokenType::LBRACKET;
-        if (str == "]") return TokenType::RBRACKET;
-        if (str == "(") return TokenType::LPAREN;
-        if (str == ")") return TokenType::RPAREN;
-        if (str == "+") return TokenType::PLUS;
-        if (str == "-") return TokenType::MINUS;
-        if (str == "*") return TokenType::STAR;
-        if (str == "/") return TokenType::SLASH;
-        if (str == "!") return TokenType::BANG;
-        if (str == "!=") return TokenType::BANG_EQUAL;
-        if (str == "==") return TokenType::EQUAL_EQUAL;
-        if (str == "<") return TokenType::LESS;
-        if (str == "<=") return TokenType::LESS_EQUAL;
-        if (str == ">") return TokenType::GREATER;
-        if (str == ">=") return TokenType::GREATER_EQUAL;
-        if (str == "\\") return TokenType::COMMENT;
-        if (str == ".") return TokenType::DOT;
-        if (str == "..") return TokenType::DOUBLE_DOT;
-        if (str == "...") return TokenType::TRIPLE_DOT;
-        return TokenType::UNKNOWN;
+        if (str == "=") return TokenType::equal;
+        if (str == ";") return TokenType::semicolon;
+        if (str == "::") return TokenType::double_colon;
+        if (str == ",") return TokenType::comma;
+        if (str == ":") return TokenType::colon;
+        if (str == "{") return TokenType::lbrace;
+        if (str == "}") return TokenType::rbrace;
+        if (str == "[") return TokenType::lbracket;
+        if (str == "]") return TokenType::rbracket;
+        if (str == "(") return TokenType::lparen;
+        if (str == ")") return TokenType::rparen;
+        if (str == "+") return TokenType::plus;
+        if (str == "-") return TokenType::minus;
+        if (str == "*") return TokenType::star;
+        if (str == "/") return TokenType::slash;
+        if (str == "!") return TokenType::bang;
+        if (str == "!=") return TokenType::bang_equal;
+        if (str == "==") return TokenType::equal_equal;
+        if (str == "<") return TokenType::less;
+        if (str == "<=") return TokenType::less_equal;
+        if (str == ">") return TokenType::greater;
+        if (str == ">=") return TokenType::greater_equal;
+        if (str == "\\") return TokenType::comment;
+        if (str == ".") return TokenType::dot;
+        if (str == "..") return TokenType::double_dot;
+        if (str == "...") return TokenType::triple_dot;
+        return TokenType::unknown;
     }
 
     // Lexer symbols list (sorted by length descending for longest-match)
@@ -191,7 +192,7 @@ namespace udo::lexer {
             "=", "+", "-", "*", "/", "(", ")", "{", "}", "[", "]", ";", ",", ":",
             "\"", "\'", "\\", "@", "#", "$", "%", "&", "?", "!", "<", ">", "|", "^", "~", "."
         };
-        std::sort(syms.begin(), syms.end(), [](const std::string &a, const std::string &b) {
+        std::ranges::sort(syms, [](const std::string &a, const std::string &b) {
             return a.size() > b.size();
         });
         return syms;

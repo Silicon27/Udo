@@ -76,22 +76,22 @@ private:
 public:
     explicit ASTContext(std::size_t initial_slab_size = 1024 * 1024);
 
-    [[nodiscard]] TranslationUnitDecl* getTranslationUnitDecl() const { return tu_decl; }
+    [[nodiscard]] TranslationUnitDecl* get_translation_unit_decl() const { return tu_decl; }
 
-    void* Allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
+    void* allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
         return allocator.allocate(size, alignment);
     }
 
     template <typename T, typename... Args>
     requires std::is_trivially_destructible_v<T>
-    T* Create(Args&&... args) {
-        void* storage = Allocate(sizeof(T), alignof(T));
+    T* create(Args&&... args) {
+        void* storage = allocate(sizeof(T), alignof(T));
         return new (storage) T(std::forward<Args>(args)...);
     }
 
-    char* AllocateString(std::string_view str) {
+    char* allocate_string(std::string_view str) {
         if (str.empty()) return nullptr;
-        char* storage = static_cast<char*>(Allocate(str.size() + 1, 1));
+        char* storage = static_cast<char*>(allocate(str.size() + 1, 1));
         std::ranges::copy(str, storage);
         storage[str.size()] = '\0';
         return storage;

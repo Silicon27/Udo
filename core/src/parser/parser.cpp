@@ -11,7 +11,12 @@
 
 namespace udo::parse {
     Token Parser::peek(const int n) const { return tokens[pos + n]; }
-    Token Parser::consume(const int n) {Token t = tokens[pos]; pos += n; return t;}
+    Token Parser::consume(const int n) {
+        Token token = tokens[pos];
+        pos += n;
+        return token;
+    }
+
     Token Parser::consume_and_expect(const TokenType exp, const Token& curr, const diag::DiagID err) {
         if (curr.type == exp) {
             pos++;
@@ -20,7 +25,7 @@ namespace udo::parse {
 
         diagnostics_.Report(err)
                 << "expected token";
-        return {TokenType::INVALID_TOKEN, ""};
+        return {TokenType::invalid_token, ""};
     }
 
     Token Parser::match(const TokenType exp, const diag::DiagID err) {
@@ -28,7 +33,7 @@ namespace udo::parse {
     }
 
     Token Parser::match(MatchToken& token) {
-        if (const auto t = consume_and_expect(token.token, peek(), token.diag_id); t.type != TokenType::INVALID_TOKEN) {
+        if (const auto t = consume_and_expect(token.token, peek(), token.diag_id); t.type != TokenType::invalid_token) {
             token.is_active = true;
             return t;
         } else {
@@ -60,33 +65,27 @@ namespace udo::parse {
     }
 
     void Parser::parse_variable_decl() {
-        // TODO: to have better recovery, make grammar parsing more as a list, e.g. for variable declaration, we can parse it as a list of tokens in the form of "let <identifier> (':' <type>)? '=' <expression>", and then check if the list matches the expected pattern, if not, report error and try to recover by skipping tokens until we find a token that can start a new declaration or statement.
+        // TODO: improve grammar-driven recovery around optional type annotation and initializer.
 
         auto initial_let = MatchToken(TokenType::kw_let, diag::common::err_expected_token); // should not error if not matched, if error it could mean memory corruption during program runtime
-        auto variable_identifier = MatchToken(TokenType::IDENTIFIER, diag::common::err_expected_token);
-        auto colon = MatchToken(TokenType::COLON, diag::common::err_expected_token);
-        auto equal = MatchToken(TokenType::EQUAL, diag::common::err_expected_token);
-
-        bool deduce_type = false;
+        auto variable_identifier = MatchToken(TokenType::identifier, diag::common::err_expected_token);
+        auto colon = MatchToken(TokenType::colon, diag::common::err_expected_token);
 
         // pre-build the grammar with custom template-based PEG style parser combinators
         // helps recovery later on
 
 
         match(initial_let);
-        std::string id =
+        std::string variable_id =
             match(variable_identifier).lexeme;
+        (void)variable_id;
 
         // attempt to match `=` or `:`
         attempt(colon);
-
-
-        }
-        
     }
 
     Parser::Parser(const std::vector<Token> &tokens, Flags flag, ASTContext &context, diag::DiagnosticsEngine& diag)
-        : diagnostics_(diag), context_(context), tokens(tokens), flags(std::move(flag)), context(Parser_Context::Top_Level) {
+        : diagnostics_(diag), context_(context), tokens(tokens), flags(std::move(flag)), parser_context(ParserContext::top_level) {
     }
 
 

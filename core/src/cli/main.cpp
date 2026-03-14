@@ -13,13 +13,13 @@ int main(int argc, char* argv[]) {
     using namespace udo;
 
     // Create the shared diagnostics engine
-    auto diag = diag::createDiagnosticsEngine();
+    auto diagnostics_engine = udo::diag::createDiagnosticsEngine();
 
     // Parse command line and create compiler invocation
     auto config = compiler_config::parse(argc, argv);
-    config.diag = diag.get();
+    config.diag = diagnostics_engine.get();
 
-    Compiler_Invocation ci(config, *diag);
+    Compiler_Invocation ci(config, *diagnostics_engine);
 
     return ci.run();
 }

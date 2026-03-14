@@ -52,11 +52,11 @@ void* ASTContext::Slab::allocate(const std::size_t size, const std::size_t align
     std::size_t space_left = capacity - (current - buffer);
     void* ptr = current;
 
-    void* alignPtr = std::align(align, size, ptr, space_left);
-    if (!alignPtr) return nullptr;
+    void* align_ptr = std::align(align, size, ptr, space_left);
+    if (!align_ptr) return nullptr;
 
-    current = static_cast<char*>(alignPtr) + size;
-    return alignPtr;
+    current = static_cast<char*>(align_ptr) + size;
+    return align_ptr;
 }
 
 void ASTContext::Slab::reset() {
@@ -65,7 +65,7 @@ void ASTContext::Slab::reset() {
 
 ASTContext::ASTContext(std::size_t initial_slab_size)
     : allocator(initial_slab_size) {
-    tu_decl = Create<TranslationUnitDecl>();
+    tu_decl = create<TranslationUnitDecl>();
 }
 
 } // namespace udo::ast

@@ -25,10 +25,10 @@ namespace udo::ast {
         };
 
     protected:
-        explicit Type(const Kind K) : typeKind(K) {}
-        [[nodiscard]] Kind getKind() const { return typeKind; }
+        explicit Type(const Kind K) : type_kind(K) {}
+        [[nodiscard]] Kind get_kind() const { return type_kind; }
     private:
-        Kind typeKind;
+        Kind type_kind;
     };
     static_assert(std::is_trivially_destructible_v<Type>);
 
@@ -52,11 +52,11 @@ namespace udo::ast {
         };
     protected:
         explicit BuiltinType(const BuiltinKind BK)
-            : Type(Kind::Builtin), builtinKind(BK) {}
+            : Type(Kind::Builtin), builtin_kind(BK) {}
 
-        [[nodiscard]] BuiltinKind getBuiltinKind() const { return builtinKind; }
+        [[nodiscard]] BuiltinKind get_builtin_kind() const { return builtin_kind; }
     private:
-        BuiltinKind builtinKind;
+        BuiltinKind builtin_kind;
     };
     static_assert(std::is_trivially_destructible_v<BuiltinType>);
 
@@ -69,10 +69,10 @@ namespace udo::ast {
         DeclContext() = default;
 
     public:
-        void addDecl(Decl* decl);
+        void add_decl(Decl* decl);
 
-        [[nodiscard]] Decl* getFirstDecl() const { return first_decl; }
-        [[nodiscard]] Decl* getLastDecl() const { return last_decl; }
+        [[nodiscard]] Decl* get_first_decl() const { return first_decl; }
+        [[nodiscard]] Decl* get_last_decl() const { return last_decl; }
     };
     static_assert(std::is_trivially_destructible_v<DeclContext>);
 
@@ -90,14 +90,14 @@ namespace udo::ast {
         };
 
     private:
-        Kind declKind;
+        Kind decl_kind;
 
     protected:
-        explicit Decl(const Kind K) : declKind(K) {}
+        explicit Decl(const Kind K) : decl_kind(K) {}
 
     public:
         ~Decl() = default;
-        [[nodiscard]] Kind getKind() const { return declKind; }
+        [[nodiscard]] Kind get_kind() const { return decl_kind; }
 
         Decl* next = nullptr;
 
@@ -127,14 +127,14 @@ namespace udo::ast {
         };
 
     private:
-        Kind stmtKind;
+        Kind stmt_kind;
 
     protected:
-        explicit Stmt(const Kind K) : stmtKind(K) {}
+        explicit Stmt(const Kind K) : stmt_kind(K) {}
 
     public:
         ~Stmt() = default;
-        [[nodiscard]] Kind getKind() const { return stmtKind; }
+        [[nodiscard]] Kind get_kind() const { return stmt_kind; }
     };
     static_assert(std::is_trivially_destructible_v<Stmt>);
 
@@ -146,7 +146,7 @@ namespace udo::ast {
             : Stmt(Kind::CompoundStmt), num_stmts(num_stmts) {}
 
     public:
-        static CompoundStmt* Create(ASTContext& C, Stmt** stmts, std::uint32_t num_stmts);
+        static CompoundStmt* create(ASTContext& context, Stmt** stmts, std::uint32_t num_stmts);
 
         using iterator = Stmt**;
         using const_iterator = Stmt* const*;

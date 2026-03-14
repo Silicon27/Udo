@@ -3,8 +3,8 @@
 namespace udo::lexer {
 
 
-    Lexer::Lexer(std::istream &inputStream)
-        : input(inputStream), currentPos(0), lineNumber(1), symbols(udo::lexer::symbols())
+    Lexer::Lexer(std::istream &input_stream)
+        : input(input_stream), current_pos(0), line_number(1), symbols(udo::lexer::symbols())
     {
     }
 
@@ -13,80 +13,80 @@ namespace udo::lexer {
         std::string line;
 
         while (std::getline(input, line)) {
-            currentLine = line;
-            currentPos = 0;
+            current_line = line;
+            current_pos = 0;
             spaces.clear();
 
-            while (currentPos < currentLine.size()) {
-                char currentChar = currentLine[currentPos];
+            while (current_pos < current_line.size()) {
+                char current_char = current_line[current_pos];
 
-                if (std::isspace(currentChar)) {
-                    spaces += currentChar;
-                    ++currentPos;
+                if (std::isspace(current_char)) {
+                    spaces += current_char;
+                    ++current_pos;
                     continue;
                 }
 
-                if (std::isdigit(currentChar)) {
-                    tokens.push_back(tokenizeNumber());
+                if (std::isdigit(current_char)) {
+                    tokens.push_back(tokenize_number());
                     continue;
                 }
 
-                if (std::isalpha(currentChar) || currentChar == '_') {
-                    tokens.push_back(tokenizeIdentifier());
+                if (std::isalpha(current_char) || current_char == '_') {
+                    tokens.push_back(tokenize_identifier());
                     continue;
                 }
 
-                if (isSymbolStart(currentChar)) {
-                    tokens.push_back(tokenizeSymbol());
+                if (is_symbol_start(current_char)) {
+                    tokens.push_back(tokenize_symbol());
                     continue;
                 }
 
-                tokens.push_back({TokenType::UNKNOWN, std::string(1, currentChar), lineNumber, static_cast<int>(currentPos + 1)});
-                unfilteredTokens.push_back({TokenType::UNKNOWN, std::string(1, currentChar) + spaces, lineNumber, static_cast<int>(currentPos + 1)});
-                ++currentPos;
+                tokens.push_back({TokenType::unknown, std::string(1, current_char), line_number, static_cast<int>(current_pos + 1)});
+                unfiltered_tokens.push_back({TokenType::unknown, std::string(1, current_char) + spaces, line_number, static_cast<int>(current_pos + 1)});
+                ++current_pos;
             }
 
-            tokens.push_back({TokenType::NEWLINE, "\n", lineNumber, 0});
-            unfilteredTokens.push_back({TokenType::NEWLINE, "\n", lineNumber, 0});
+            tokens.push_back({TokenType::newline, "\n", line_number, 0});
+            unfiltered_tokens.push_back({TokenType::newline, "\n", line_number, 0});
 
-            unfilteredLines[lineNumber++] = line;
+            unfiltered_lines[line_number++] = line;
 
 
         }
 
-        tokens.push_back({TokenType::eof, "", lineNumber, 0});
-        unfilteredTokens.push_back({TokenType::eof, "", lineNumber, 0});
-        return {tokens, unfilteredTokens, unfilteredLines};
+        tokens.push_back({TokenType::eof, "", line_number, 0});
+        unfiltered_tokens.push_back({TokenType::eof, "", line_number, 0});
+        return {tokens, unfiltered_tokens, unfiltered_lines};
     }
 
-    Token Lexer::tokenizeNumber() {
-        int column = static_cast<int>(currentPos) + 1;
+    Token Lexer::tokenize_number() {
+        int column = static_cast<int>(current_pos) + 1;
         std::string lexeme;
-        const std::string &s = currentLine;
-        std::size_t start = currentPos;
-        bool isFloat = false;
-        bool hasDigits = false;
+        const std::string &s = current_line;
+        std::size_t start = current_pos;
+        bool is_float = false;
+        bool has_digits = false;
         int base = 10;
 
         // Detect base prefix
-        if (s[currentPos] == '0' && currentPos + 1 < s.size()) {
-            char c1 = s[currentPos + 1];
+        if (s[current_pos] == '0' && current_pos + 1 < s.size()) {
+            char c1 = s[current_pos + 1];
             if (c1 == 'x' || c1 == 'X') {
                 base = 16;
-                lexeme += s[currentPos++];
-                lexeme += s[currentPos++];
+                lexeme += s[current_pos++];
+                lexeme += s[current_pos++];
             } else if (c1 == 'b' || c1 == 'B') {
                 base = 2;
-                lexeme += s[currentPos++];
-                lexeme += s[currentPos++];
+                lexeme += s[current_pos++];
+                lexeme += s[current_pos++];
             } else if (c1 == 'o' || c1 == 'O') {
                 base = 8;
-                lexeme += s[currentPos++];
-                lexeme += s[currentPos++];
+                lexeme += s[current_pos++];
+                lexeme += s[current_pos++];
             } else if (std::isdigit(c1)) {
                 // C-style octal: 0755
                 base = 8;
-                lexeme += s[currentPos++];
+                lexeme += s[current_pos++];
             }
         }
 
@@ -103,14 +103,14 @@ namespace udo::lexer {
         };
 
         // Parse integer part with digit separators
-        while (currentPos < s.size()) {
-            if (validDigit(s[currentPos])) {
-                lexeme += s[currentPos++];
-                hasDigits = true;
-            } else if (isSeparator(s[currentPos])) {
+        while (current_pos < s.size()) {
+            if (validDigit(s[current_pos])) {
+                lexeme += s[current_pos++];
+                has_digits = true;
+            } else if (isSeparator(s[current_pos])) {
                 // Digit separator: must have digit before and after
-                if (hasDigits && currentPos + 1 < s.size() && validDigit(s[currentPos + 1])) {
-                    lexeme += s[currentPos++];
+                if (has_digits && current_pos + 1 < s.size() && validDigit(s[current_pos + 1])) {
+                    lexeme += s[current_pos++];
                 } else {
                     break;
                 }
@@ -119,78 +119,78 @@ namespace udo::lexer {
             }
         }
 
-        if (!hasDigits) {
-            return {TokenType::UNKNOWN, s.substr(start, currentPos - start + 1), lineNumber, column};
+        if (!has_digits) {
+            return {TokenType::unknown, s.substr(start, current_pos - start + 1), line_number, column};
         }
 
         // Floating-point handling (only for decimal and hex)
         if (base == 10 || base == 16) {
-            if (currentPos < s.size() && s[currentPos] == '.') {
+            if (current_pos < s.size() && s[current_pos] == '.') {
                 // Peek ahead to decide if this is a decimal point or range operator
-                if (currentPos + 1 < s.size() && validDigit(s[currentPos + 1])) {
+                if (current_pos + 1 < s.size() && validDigit(s[current_pos + 1])) {
                     // Definitely a float: digit after dot
-                    isFloat = true;
-                    lexeme += s[currentPos++];
+                    is_float = true;
+                    lexeme += s[current_pos++];
 
-                    while (currentPos < s.size()) {
-                        if (validDigit(s[currentPos]) ||
-                            (isSeparator(s[currentPos]) && currentPos + 1 < s.size() && validDigit(s[currentPos + 1]))) {
-                            lexeme += s[currentPos++];
+                    while (current_pos < s.size()) {
+                        if (validDigit(s[current_pos]) ||
+                            (isSeparator(s[current_pos]) && current_pos + 1 < s.size() && validDigit(s[current_pos + 1]))) {
+                            lexeme += s[current_pos++];
                         } else {
                             break;
                         }
                     }
-                } else if (currentPos + 1 >= s.size() || s[currentPos + 1] != '.') {
+                } else if (current_pos + 1 >= s.size() || s[current_pos + 1] != '.') {
                     // Trailing dot: 123. is valid, but 123.. is range operator
-                    isFloat = true;
-                    lexeme += s[currentPos++];
+                    is_float = true;
+                    lexeme += s[current_pos++];
                 }
                 // Otherwise: next char is '.', so this is ".." range operator - don't consume
             }
 
             // Exponent (e/E for decimal, p/P for hex)
-            bool needsExponent = (base == 16 && isFloat); // Hex floats MUST have exponent
+            bool needs_exponent = (base == 16 && is_float); // Hex floats MUST have exponent
 
-            if (currentPos < s.size() &&
-                (s[currentPos] == 'e' || s[currentPos] == 'E' ||
-                 (base == 16 && (s[currentPos] == 'p' || s[currentPos] == 'P')))) {
+            if (current_pos < s.size() &&
+                (s[current_pos] == 'e' || s[current_pos] == 'E' ||
+                 (base == 16 && (s[current_pos] == 'p' || s[current_pos] == 'P')))) {
 
-                char expChar = s[currentPos++];
-                lexeme += expChar;
+                char exp_char = s[current_pos++];
+                lexeme += exp_char;
 
                 // Optional sign
-                if (currentPos < s.size() && (s[currentPos] == '+' || s[currentPos] == '-')) {
-                    lexeme += s[currentPos++];
+                if (current_pos < s.size() && (s[current_pos] == '+' || s[current_pos] == '-')) {
+                    lexeme += s[current_pos++];
                 }
 
                 // Exponent digits (always decimal, even for hex floats)
-                bool hasExpDigits = false;
-                while (currentPos < s.size()) {
-                    if (std::isdigit(s[currentPos])) {
-                        lexeme += s[currentPos++];
-                        hasExpDigits = true;
-                    } else if (isSeparator(s[currentPos]) && hasExpDigits &&
-                               currentPos + 1 < s.size() && std::isdigit(s[currentPos + 1])) {
-                        lexeme += s[currentPos++];
+                bool has_exp_digits = false;
+                while (current_pos < s.size()) {
+                    if (std::isdigit(s[current_pos])) {
+                        lexeme += s[current_pos++];
+                        has_exp_digits = true;
+                    } else if (isSeparator(s[current_pos]) && has_exp_digits &&
+                               current_pos + 1 < s.size() && std::isdigit(s[current_pos + 1])) {
+                        lexeme += s[current_pos++];
                     } else {
                         break;
                     }
                 }
 
-                if (!hasExpDigits) {
-                    return {TokenType::UNKNOWN, s.substr(start, currentPos - start), lineNumber, column};
+                if (!has_exp_digits) {
+                    return {TokenType::unknown, s.substr(start, current_pos - start), line_number, column};
                 }
-                isFloat = true;
-            } else if (needsExponent) {
+                is_float = true;
+            } else if (needs_exponent) {
                 // Hex float without required 'p' exponent
-                return {TokenType::UNKNOWN, s.substr(start, currentPos - start), lineNumber, column};
+                return {TokenType::unknown, s.substr(start, current_pos - start), line_number, column};
             }
         }
 
         // Type suffixes
         std::string suffix;
-        while (currentPos < s.size() && std::isalpha(s[currentPos])) {
-            suffix += s[currentPos++];
+        while (current_pos < s.size() && std::isalpha(s[current_pos])) {
+            suffix += s[current_pos++];
         }
 
         if (!suffix.empty()) {
@@ -200,72 +200,72 @@ namespace udo::lexer {
             }
 
             // Validate suffix
-            if (isFloat) {
+            if (is_float) {
                 // Float suffixes: f, lf, l (long double)
                 if (lower != "f" && lower != "lf" && lower != "l") {
-                    return {TokenType::UNKNOWN, s.substr(start, currentPos - start), lineNumber, column};
+                    return {TokenType::unknown, s.substr(start, current_pos - start), line_number, column};
                 }
             } else {
                 // Integer suffixes: u, l, ul, lu, ll, ull, llu, z, uz, zu
                 constexpr std::string validSuffixes[] = {
                     "u", "l", "ul", "lu", "ll", "ull", "llu", "z", "uz", "zu"
                 };
-                bool isValid = false;
+                bool is_valid = false;
                 for (const auto& validSuffix : validSuffixes) {
                     if (lower == validSuffix) {
-                        isValid = true;
+                        is_valid = true;
                         break;
                     }
                 }
-                if (!isValid) {
-                    return {TokenType::UNKNOWN, s.substr(start, currentPos - start), lineNumber, column};
+                if (!is_valid) {
+                    return {TokenType::unknown, s.substr(start, current_pos - start), line_number, column};
                 }
             }
             lexeme += suffix;
         }
 
-        TokenType tokType = isFloat ? TokenType::FLOAT_LITERAL : TokenType::INT_LITERAL;
-        unfilteredTokens.push_back({tokType, spaces + lexeme, lineNumber, column});
+        TokenType tok_type = is_float ? TokenType::float_literal : TokenType::int_literal;
+        unfiltered_tokens.push_back({tok_type, spaces + lexeme, line_number, column});
         spaces.clear();
-        return {tokType, lexeme, lineNumber, column};
+        return {tok_type, lexeme, line_number, column};
     }
 
-    Token Lexer::tokenizeIdentifier() {
-        int column = static_cast<int>(currentPos) + 1;
+    Token Lexer::tokenize_identifier() {
+        int column = static_cast<int>(current_pos) + 1;
         std::string ident;
 
-        while (currentPos < currentLine.size() && (std::isalnum(currentLine[currentPos]) || currentLine[currentPos] == '_')) {
-            ident += currentLine[currentPos++];
+        while (current_pos < current_line.size() && (std::isalnum(current_line[current_pos]) || current_line[current_pos] == '_')) {
+            ident += current_line[current_pos++];
         }
 
-        TokenType type = is_keyword(ident) ? get_keyword_type(ident) : TokenType::IDENTIFIER;
-        unfilteredTokens.push_back({type, spaces + ident, lineNumber, column});
+        TokenType type = is_keyword(ident) ? get_keyword_type(ident) : TokenType::identifier;
+        unfiltered_tokens.push_back({type, spaces + ident, line_number, column});
         spaces.clear();
-        return {type, ident, lineNumber, column};
+        return {type, ident, line_number, column};
     }
 
-    Token Lexer::tokenizeSymbol() {
-        int column = static_cast<int>(currentPos) + 1;
+    Token Lexer::tokenize_symbol() {
+        int column = static_cast<int>(current_pos) + 1;
 
         for (const auto &sym : symbols) {
             std::size_t len = sym.size();
-            if (currentPos + len <= currentLine.size() &&
-                currentLine.substr(currentPos, len) == sym) {
-                currentPos += len;
+            if (current_pos + len <= current_line.size() &&
+                current_line.substr(current_pos, len) == sym) {
+                current_pos += len;
                 TokenType type = get_symbol_type(sym);
-                unfilteredTokens.push_back({type, spaces + sym, lineNumber, column});
+                unfiltered_tokens.push_back({type, spaces + sym, line_number, column});
                 spaces.clear();
-                return {type, sym, lineNumber, column};
+                return {type, sym, line_number, column};
             }
         }
 
-        char unknownChar = currentLine[currentPos++];
-        unfilteredTokens.push_back({TokenType::UNKNOWN, spaces + std::string(1, unknownChar), lineNumber, column});
+        char unknown_char = current_line[current_pos++];
+        unfiltered_tokens.push_back({TokenType::unknown, spaces + std::string(1, unknown_char), line_number, column});
         spaces.clear();
-        return {TokenType::UNKNOWN, std::string(1, unknownChar), lineNumber, column};
+        return {TokenType::unknown, std::string(1, unknown_char), line_number, column};
     }
 
-    bool Lexer::isSymbolStart(char c) const {
+    bool Lexer::is_symbol_start(char c) const {
         return std::ranges::any_of(symbols, [c](const std::string &sym) {
             return !sym.empty() && sym[0] == c;
         });

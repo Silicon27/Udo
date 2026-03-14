@@ -30,24 +30,24 @@ namespace udo::lexer {
 
     class Lexer {
     public:
-        explicit Lexer(std::istream &inputStream);
+        explicit Lexer(std::istream &input_stream);
 
         std::tuple<std::vector<Token>, std::vector<Token>, std::map<int, std::string>> tokenize();
 
     private:
         std::istream &input;
-        std::string currentLine;
-        std::size_t currentPos;
-        int lineNumber;
-        std::map<int, std::string> unfilteredLines;
+        std::string current_line;
+        std::size_t current_pos;
+        int line_number;
+        std::map<int, std::string> unfiltered_lines;
         const std::vector<std::string>& symbols;
         std::string spaces;
-        std::vector<Token> unfilteredTokens;
+        std::vector<Token> unfiltered_tokens;
 
-        Token tokenizeNumber();
-        Token tokenizeIdentifier();
-        Token tokenizeSymbol();
-        [[nodiscard]] bool isSymbolStart(char c) const;
+        Token tokenize_number();
+        Token tokenize_identifier();
+        Token tokenize_symbol();
+        [[nodiscard]] bool is_symbol_start(char c) const;
     };
 
 } // namespace udo::lexer

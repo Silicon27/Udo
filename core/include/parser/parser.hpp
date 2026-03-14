@@ -42,11 +42,11 @@ namespace udo::parse {
     
     class Parser {
     public:
-        enum class Parser_Context {
-            Top_Level,
-            Namespace,
-            Function,
-            Statement,
+        enum class ParserContext {
+            top_level,
+            namespace_scope,
+            function_scope,
+            statement_scope,
         };
 
 
@@ -55,7 +55,7 @@ namespace udo::parse {
         ASTContext& context_;
         std::vector<Token> tokens;
         Flags flags;
-        Parser_Context context;
+        ParserContext parser_context;
         int pos = 0;
 
     public:

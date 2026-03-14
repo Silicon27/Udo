@@ -7,7 +7,7 @@
 #include <cstring>
 
 namespace udo::ast {
-    void DeclContext::addDecl(Decl *decl) {
+    void DeclContext::add_decl(Decl *decl) {
         if (!first_decl) {
             first_decl = last_decl = decl;
         } else {
@@ -25,13 +25,13 @@ namespace udo::ast {
      * @param num_stmts The number of statements in the `stmts` array.
      * @return A pointer to the newly created `CompoundStmt` instance containing the provided statements.
      */
-    CompoundStmt* CompoundStmt::Create(ASTContext& C, Stmt** stmts, std::uint32_t num_stmts) {
+    CompoundStmt* CompoundStmt::create(ASTContext& context, Stmt** stmts, std::uint32_t num_stmts) {
         const std::size_t size = sizeof(CompoundStmt) + num_stmts * sizeof(Stmt*);
-        void* storage = C.Allocate(size, alignof(CompoundStmt));
-        auto* CS = new (storage) CompoundStmt(num_stmts);
+        void* storage = context.allocate(size, alignof(CompoundStmt));
+        auto* compound_stmt = new (storage) CompoundStmt(num_stmts);
         if (num_stmts > 0) {
-            std::memcpy(CS->get_stmts(), stmts, num_stmts * sizeof(Stmt*));
+            std::memcpy(compound_stmt->get_stmts(), stmts, num_stmts * sizeof(Stmt*));
         }
-        return CS;
+        return compound_stmt;
     }
 }
