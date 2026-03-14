@@ -190,4 +190,10 @@ public:
 
 } // namespace udo::diag
 
+namespace diag {
+    struct SimpleErrorMessagePack {
+
+    };
+}
+
 #endif // DIAGID_HPP

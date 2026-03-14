@@ -104,7 +104,7 @@ namespace udo::lexer {
         TRIPLE_DOT,
 
         // misc
-        MATCHED_NO_TOKENS,
+        INVALID_TOKEN,
     };
 
     // Keyword set for fast lookup
